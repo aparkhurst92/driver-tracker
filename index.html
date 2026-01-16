@@ -1,135 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Location Tracker</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-        .container { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; max-width: 400px; width: 100%; }
-        h1 { color: #333; margin-bottom: 10px; font-size: 24px; }
-        p { color: #666; margin-bottom: 20px; font-size: 14px; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; color: #333; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
-        input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; }
-        input:focus { outline: none; border-color: #007AFF; }
-        .status { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 14px; text-align: center; font-weight: 600; display: none; }
-        .status.active { display: block; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status.error { display: block; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .status.waiting { display: block; background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .button-group { display: flex; gap: 10px; margin-top: 20px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .start-btn { background: #007AFF; color: white; }
-        .start-btn:active { opacity: 0.8; }
-        .stop-btn { background: #FF3B30; color: white; }
-        .stop-btn:active { opacity: 0.8; }
-        .coords { margin-top: 15px; padding: 12px; background: #f9f9f9; border-radius: 6px; font-family: monospace; font-size: 12px; color: #666; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚗 Driver Tracker</h1>
-        <p>Keep this app open. Your location will update automatically every 30 seconds.</p>
-        
-        <div class="input-group">
-            <label for="driverName">Your Name:</label>
-            <input type="text" id="driverName" placeholder="Enter your name" autocomplete="off">
-        </div>
+<script>
+  const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/25958410/ugzl230/";
 
-        <div class="button-group">
-            <button class="start-btn" onclick="startTracking()">Start Tracking</button>
-            <button class="stop-btn" onclick="stopTracking()">Stop</button>
-        </div>
+  let trackingInterval = null;
+  let isTracking = false;
 
-        <div class="status" id="status"></div>
-        <div class="coords" id="coords" style="display:none;"></div>
-    </div>
+  function startTracking() {
+    const driverName = document.getElementById("driverName").value.trim();
 
-    <script>
-        const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/25958410/ugzl230/";
-        
-        let trackingInterval = null;
-        let isTracking = false;
+    if (!driverName) {
+      showStatus("Please enter your name first", "error");
+      return;
+    }
 
-        function startTracking() {
-            const driverName = document.getElementById('driverName').value.trim();
-            
-            if (!driverName) {
-                showStatus('Please enter your name first', 'error');
-                return;
-            }
+    if (isTracking) {
+      showStatus("Already tracking...", "waiting");
+      return;
+    }
 
-            if (isTracking) {
-                showStatus('Already tracking...', 'waiting');
-                return;
-            }
+    isTracking = true;
+    showStatus("Starting GPS tracking...", "waiting");
+    document.querySelector(".start-btn").disabled = true;
 
-            isTracking = true;
-            showStatus('Starting GPS tracking...', 'waiting');
-            document.querySelector('.start-btn').disabled = true;
+    sendLocation(driverName);
 
-            sendLocation(driverName);
+    trackingInterval = setInterval(() => {
+      sendLocation(driverName);
+    }, 30000);
+  }
 
-            trackingInterval = setInterval(() => {
-                sendLocation(driverName);
-            }, 30000);
+  function stopTracking() {
+    if (trackingInterval) clearInterval(trackingInterval);
+    trackingInterval = null;
+    isTracking = false;
+    document.querySelector(".start-btn").disabled = false;
+    showStatus("Tracking stopped", "error");
+    document.getElementById("coords").style.display = "none";
+  }
+
+  function sendLocation(driverName) {
+    if (!navigator.geolocation) {
+      showStatus("Geolocation not supported", "error");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+
+        // Zapier-friendly payload (form-encoded)
+        const payload = new URLSearchParams({
+          driver_name: driverName,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6),
+          accuracy_m: Math.round(accuracy),
+          timestamp: new Date().toISOString(),
+          address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+        });
+
+        try {
+          await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+            body: payload.toString()
+          });
+
+          showStatus("✅ Location sent to Zapier", "active");
+          document.getElementById("coords").innerHTML =
+            `📍 ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (±${Math.round(accuracy)}m)`;
+          document.getElementById("coords").style.display = "block";
+        } catch (e) {
+          showStatus("❌ Could not send to Zapier", "error");
         }
+      },
+      (error) => {
+        showStatus(`GPS Error: ${error.message}. Enable location.`, "error");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
 
-        function stopTracking() {
-            if (trackingInterval) {
-                clearInterval(trackingInterval);
-                trackingInterval = null;
-            }
-            isTracking = false;
-            document.querySelector('.start-btn').disabled = false;
-            showStatus('Tracking stopped', 'error');
-            document.getElementById('coords').style.display = 'none';
-        }
+  function showStatus(message, type) {
+    const status = document.getElementById("status");
+    status.textContent = message;
+    status.className = `status ${type}`;
+  }
+</script>
 
-        function sendLocation(driverName) {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude } = position.coords;
-                        const address = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-
-                        const payload = {
-                            driver_name: driverName,
-                            latitude: parseFloat(latitude.toFixed(6)),
-                            longitude: parseFloat(longitude.toFixed(6)),
-                            address: address
-                        };
-
-                        // Try sending directly
-                        navigator.sendBeacon(WEBHOOK_URL, JSON.stringify(payload));
-                        
-                        // Also try fetch as backup
-                        fetch(WEBHOOK_URL, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        }).catch(() => {});
-
-                        showStatus('✅ Location tracked', 'active');
-                        document.getElementById('coords').innerHTML = `📍 ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                        document.getElementById('coords').style.display = 'block';
-                    },
-                    (error) => {
-                        showStatus(`GPS Error: ${error.message}. Enable location.`, 'error');
-                    }
-                );
-            } else {
-                showStatus('Geolocation not supported', 'error');
-            }
-        }
-
-        function showStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-        }
-    </script>
-</body>
-</html>
