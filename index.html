@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Driver Tracker</title>
+<title>Driver Dispatch</title>
 
 <style>
 
@@ -66,7 +66,13 @@ margin-top:8px;
 
 <div class="sidebar">
 
-<h2>🚤 Driver Tracker</h2>
+<h2>🚤 Driver Dispatch</h2>
+
+<div>Last update: <span id="lastUpdate">--</span></div>
+
+<hr>
+
+<h3>Driver Check-In</h3>
 
 <label>Driver Name</label>
 <input id="driverName">
@@ -128,7 +134,7 @@ center:CONFIG.shop
 new google.maps.Marker({
 position:CONFIG.shop,
 map:map,
-title:"Shop"
+title:"Boat Shop"
 });
 
 fetchSheet();
@@ -150,10 +156,10 @@ rows.shift();
 
 rows.forEach(row=>{
 
-let driver=row[13];
-let lat=parseFloat(row[14]);
-let lng=parseFloat(row[15]);
-let delivery=row[12];
+let driver=row[10];
+let lat=parseFloat(row[11]);
+let lng=parseFloat(row[12]);
+let delivery=row[2];
 
 if(driver && !isNaN(lat) && !isNaN(lng)){
 
@@ -163,8 +169,12 @@ updateDriver(driver,lat,lng,delivery);
 
 });
 
+document.getElementById("lastUpdate").innerText=new Date().toLocaleTimeString();
+
 }catch(e){
+
 console.log(e);
+
 }
 
 }
@@ -194,7 +204,9 @@ map.panTo(pos);
 }
 
 if(delivery && !deliveryMarkers[name]){
+
 geocodeDelivery(delivery,name);
+
 }
 
 }
@@ -204,7 +216,7 @@ async function geocodeDelivery(address,driver){
 let geo=await fetch(
 "https://maps.googleapis.com/maps/api/geocode/json?address="+
 encodeURIComponent(address)+
-"&key=YOUR_GOOGLE_MAPS_KEY"
+"&key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs"
 );
 
 let data=await geo.json();
@@ -216,7 +228,8 @@ let loc=data.results[0].geometry.location;
 deliveryMarkers[driver]=new google.maps.Marker({
 position:loc,
 map:map,
-icon:"https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+icon:"https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+title:"Delivery Location"
 });
 
 }
@@ -226,8 +239,11 @@ function startTracking(){
 let name=document.getElementById("driverName").value;
 
 if(!name){
+
 alert("Enter driver name");
+
 return;
+
 }
 
 sendLocation();
@@ -285,7 +301,7 @@ document.getElementById("trackingStatus").innerText=
 
 </script>
 
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_KEY&callback=initMap"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs&callback=initMap"></script>
 
 </body>
 </html>
