@@ -268,38 +268,42 @@
 
     <script>
         const CONFIG = {
-            sheetUrl: 'PASTE_YOUR_PUBLISHED_CSV_URL_HERE',
 
-            refreshInterval: 5000,
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHKsy7EW-VkVb8Deh-roIx377JryixHBo3i_b5tZQKkjDith2kSCr74nS1lq9vV36SljfSZNmNSOvs/pub?gid=1552296296&single=true&output=csv',
 
-            columns: {
-                bookingId: 0,          // A
-                customerName: 1,       // B
-                email: 2,              // C
-                phone: 3,              // D
-                status: 4,             // E
-                item: 5,               // F
-                startDate: 6,          // G
-                endDate: 7,            // H
-                partySize: 8,          // I
-                total: 9,              // J
-                bookingUrl: 10,        // K
-                createdAt: 11,         // L
-                deliveryLocation: 12,  // M
-                driverName: 13,        // N
-                latitude: 14,          // O
-                longitude: 15,         // P
-                lastUpdated: 16,       // Q
-                deliveryLatitude: 17,  // R
-                deliveryLongitude: 18  // S
-            },
+    sheetId: '1SUsBk_K5AaFQJciMJLBG2uwCvg70IVPl8rGf3VQ0T9s',
 
-            shopLocation: {
-                lat: 44.773071217487626,
-                lng: -85.73030818718583,
-                name: "Boat Shop"
-            }
-        };
+    gid: '1552296296',
+
+    refreshInterval: 5000,
+
+    columns: {
+        bookingId: 0,
+        customerName: 1,
+        deliveryLocation: 2,
+        driveTime: 3,
+        distance: 4,
+        totalTime: 5,
+        bookingDate: 6,
+        pickupDate: 7,
+        rentalLength: 8,
+        dropoffDate: 9,
+        driverName: 10,
+        latitude: 11,
+        longitude: 12,
+        lastUpdated: 13,
+        status: 14,
+        deliveryLatitude: 15,
+        deliveryLongitude: 16
+    },
+
+    shopLocation: {
+        lat: 44.773071217487626,
+        lng: -85.73030818718583,
+        name: "Boat Shop"
+    }
+
+};
 
         let map;
         let markers = {};
