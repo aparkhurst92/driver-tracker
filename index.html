@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Driver Tracker</title>
+<title>Driver Tracker Dispatch</title>
 
 <style>
 
@@ -77,7 +77,6 @@ color:#555;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -87,7 +86,7 @@ color:#555;
 <div class="sidebar">
 
 <div class="header">
-<h1>🚤 Driver Tracker</h1>
+<h1>🚤 Driver Dispatch</h1>
 <div>Last update: <span id="lastUpdate">--</span></div>
 </div>
 
@@ -131,7 +130,9 @@ color:#555;
 
 const CONFIG={
 
-sheetUrl:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHKsy7EW-VkVb8Deh-roIx377JryixHBo3i_b5tZQKkjDith2kSCr74nS1lq9vV36SljfSZNmNSOvs/pub?gid=1552296296&single=true&output=csv',
+sheetUrl:"YOUR_PUBLISHED_SHEET_CSV_URL",
+
+webhook:"YOUR_ZAPIER_WEBHOOK_URL",
 
 refreshInterval:5000,
 
@@ -142,11 +143,13 @@ lng:-85.73030818718583
 
 };
 
-const WEBHOOK_URL="https://hooks.zapier.com/hooks/catch/25958410/ug08crb/";
-
 let map;
 let markers={};
+let deliveryMarkers={};
+let directionsService;
+let directionsRenderer={};
 let trackingInterval=null;
+let localDriver=null;
 
 function initMap(){
 
@@ -154,6 +157,8 @@ map=new google.maps.Map(document.getElementById("map"),{
 zoom:12,
 center:CONFIG.shopLocation
 });
+
+directionsService=new google.maps.DirectionsService();
 
 new google.maps.Marker({
 position:CONFIG.shopLocation,
@@ -168,11 +173,12 @@ setInterval(fetchSheet,CONFIG.refreshInterval);
 
 async function fetchSheet(){
 
+try{
+
 const response=await fetch(CONFIG.sheetUrl,{cache:"no-store"});
 const text=await response.text();
 
 const rows=text.split("\n").map(r=>r.split(","));
-
 rows.shift();
 
 let drivers={};
@@ -196,6 +202,8 @@ status:row[14],
 updated:row[13]
 };
 
+showDelivery(row[2],driver);
+
 }
 
 });
@@ -204,6 +212,10 @@ renderDrivers(drivers);
 updateMarkers(drivers);
 
 document.getElementById("lastUpdate").innerText=new Date().toLocaleTimeString();
+
+}catch(e){
+console.log(e);
+}
 
 }
 
@@ -217,7 +229,6 @@ html+=`
 <div class="driver-card">
 <b>${d.name}</b><br>
 Booking: ${d.booking}<br>
-Customer: ${d.customer}<br>
 Delivery: ${d.delivery}<br>
 Status: ${d.status}<br>
 Updated: ${timeSince(d.updated)}
@@ -232,19 +243,14 @@ document.getElementById("driverList").innerHTML=html;
 
 function updateMarkers(drivers){
 
-Object.keys(markers).forEach(name=>{
-if(!drivers[name]){
-markers[name].setMap(null);
-delete markers[name];
-}
-});
-
 Object.values(drivers).forEach(d=>{
 
 let pos={lat:d.lat,lng:d.lng};
 
 if(markers[d.name]){
-markers[d.name].setPosition(pos);
+
+animateMarker(markers[d.name],pos);
+
 }else{
 
 markers[d.name]=new google.maps.Marker({
@@ -263,6 +269,164 @@ scaledSize:new google.maps.Size(40,40)
 
 }
 
+function animateMarker(marker,newPos){
+
+let start=marker.getPosition();
+let i=0;
+
+let deltaLat=(newPos.lat-start.lat())/20;
+let deltaLng=(newPos.lng-start.lng())/20;
+
+let interval=setInterval(()=>{
+
+i++;
+
+marker.setPosition({
+lat:start.lat()+deltaLat*i,
+lng:start.lng()+deltaLng*i
+});
+
+if(i>=20) clearInterval(interval);
+
+},50);
+
+}
+
+async function showDelivery(address,driver){
+
+if(!address) return;
+
+if(deliveryMarkers[driver]) return;
+
+let geo=await fetch(
+"https://maps.googleapis.com/maps/api/geocode/json?address="+
+encodeURIComponent(address)+
+"&key=YOUR_GOOGLE_MAPS_API_KEY"
+);
+
+let data=await geo.json();
+
+if(!data.results.length) return;
+
+let loc=data.results[0].geometry.location;
+
+deliveryMarkers[driver]=new google.maps.Marker({
+position:loc,
+map:map,
+icon:"https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+title:"Delivery"
+});
+
+drawRoute(driver,loc);
+
+}
+
+function drawRoute(driver,destination){
+
+let driverMarker=markers[driver];
+
+if(!driverMarker) return;
+
+let request={
+origin:driverMarker.getPosition(),
+destination:destination,
+travelMode:"DRIVING"
+};
+
+directionsService.route(request,(result,status)=>{
+
+if(status==="OK"){
+
+if(!directionsRenderer[driver]){
+
+directionsRenderer[driver]=new google.maps.DirectionsRenderer({
+map:map,
+suppressMarkers:true
+});
+
+}
+
+directionsRenderer[driver].setDirections(result);
+
+}
+
+});
+
+}
+
+function startTracking(){
+
+let name=document.getElementById("driverName").value.trim();
+
+if(!name){
+alert("Enter driver name");
+return;
+}
+
+sendLocation(true);
+
+trackingInterval=setInterval(()=>{
+sendLocation(false);
+},10000);
+
+document.getElementById("trackingStatus").innerText="Tracking started";
+
+}
+
+function stopTracking(){
+
+clearInterval(trackingInterval);
+document.getElementById("trackingStatus").innerText="Tracking stopped";
+
+}
+
+function sendLocation(first=false){
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+
+let lat=pos.coords.latitude;
+let lng=pos.coords.longitude;
+
+let name=document.getElementById("driverName").value;
+
+if(first){
+
+localDriver={
+name:name,
+lat:lat,
+lng:lng
+};
+
+updateMarkers({[name]:localDriver});
+
+}
+
+let payload=new URLSearchParams({
+
+driver_name:name,
+booking_id:document.getElementById("bookingId").value,
+delivery_location:document.getElementById("deliveryAddress").value,
+status:document.getElementById("driverStatus").value,
+
+latitude:lat,
+longitude:lng,
+timestamp:new Date().toISOString()
+
+});
+
+await fetch(CONFIG.webhook,{
+method:"POST",
+headers:{"Content-Type":"application/x-www-form-urlencoded"},
+body:payload
+});
+
+document.getElementById("trackingStatus").innerText=
+"GPS Updated "+new Date().toLocaleTimeString();
+
+});
+
+}
+
 function timeSince(t){
 
 if(!t)return "";
@@ -276,63 +440,9 @@ return Math.floor(diff/60)+" hr ago";
 
 }
 
-function startTracking(){
-
-let name=document.getElementById("driverName").value;
-
-if(!name){
-alert("Enter driver name");
-return;
-}
-
-sendLocation();
-
-trackingInterval=setInterval(sendLocation,30000);
-
-document.getElementById("trackingStatus").innerText="Tracking started";
-
-}
-
-function stopTracking(){
-
-clearInterval(trackingInterval);
-
-document.getElementById("trackingStatus").innerText="Tracking stopped";
-
-}
-
-function sendLocation(){
-
-navigator.geolocation.getCurrentPosition(async pos=>{
-
-let payload=new URLSearchParams({
-
-driver_name:document.getElementById("driverName").value,
-booking_id:document.getElementById("bookingId").value,
-delivery_location:document.getElementById("deliveryAddress").value,
-status:document.getElementById("driverStatus").value,
-
-latitude:pos.coords.latitude,
-longitude:pos.coords.longitude,
-timestamp:new Date().toISOString()
-
-});
-
-await fetch(WEBHOOK_URL,{
-method:"POST",
-headers:{"Content-Type":"application/x-www-form-urlencoded"},
-body:payload
-});
-
-document.getElementById("trackingStatus").innerText="Location sent "+new Date().toLocaleTimeString();
-
-});
-
-}
-
 </script>
 
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs&callback=initMap"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap"></script>
 
 </body>
 </html>
