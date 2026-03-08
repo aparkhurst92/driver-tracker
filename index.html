@@ -3,252 +3,293 @@
 <head>
 <meta charset="UTF-8">
 <title>Driver Tracker</title>
-
 <style>
-
 body{
-margin:0;
-font-family:Arial, Helvetica, sans-serif;
-display:flex;
-height:100vh;
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  display:flex;
+  height:100vh;
 }
-
 .sidebar{
-width:400px;
-background:white;
-border-right:2px solid #eee;
-padding:20px;
-overflow:auto;
+  width:400px;
+  background:white;
+  border-right:2px solid #eee;
+  padding:20px;
+  overflow:auto;
 }
-
 h1{
-margin-top:0;
+  margin-top:0;
 }
-
 #map{
-flex:1;
-height:100vh;
+  flex:1;
+  height:100vh;
 }
-
 .driver-card{
-background:#f5f5f5;
-padding:15px;
-border-radius:10px;
-margin-bottom:10px;
+  background:#f5f5f5;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:10px;
+  border-left:6px solid #007AFF;
 }
-
 .label{
-font-weight:bold;
+  font-weight:bold;
 }
-
+.small{
+  color:#666;
+  font-size:12px;
+  margin-top:8px;
+}
 </style>
 </head>
-
 <body>
 
 <div class="sidebar">
-
-<h1>🚗 Driver Tracker</h1>
-
-<div id="lastUpdate">Last updated: --</div>
-
-<hr>
-
-<div id="driverList">
-Loading drivers...
-</div>
-
+  <h1>🚗 Driver Tracker</h1>
+  <div id="lastUpdate">Last updated: --</div>
+  <hr>
+  <div id="driverList">Loading drivers...</div>
 </div>
 
 <div id="map"></div>
 
-
 <script>
-
 const CONFIG = {
+  sheetUrl: 'PASTE_YOUR_PUBLISHED_CSV_URL_HERE',
 
-sheetUrl:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHKsy7EW-VkVb8Deh-roIx377JryixHBo3i_b5tZQKkjDith2kSCr74nS1lq9vV36SljfSZNmNSOvs/pub?gid=1552296296&single=true&output=csv',
+  columns: {
+    bookingId: 0,          // A
+    customerName: 1,       // B
+    email: 2,              // C
+    phone: 3,              // D
+    status: 4,             // E
+    item: 5,               // F
+    startDate: 6,          // G
+    endDate: 7,            // H
+    partySize: 8,          // I
+    total: 9,              // J
+    bookingUrl: 10,        // K
+    createdAt: 11,         // L
+    deliveryLocation: 12,  // M
+    driverName: 13,        // N
+    latitude: 14,          // O
+    longitude: 15,         // P
+    lastUpdated: 16,       // Q
+    deliveryLatitude: 17,  // R
+    deliveryLongitude: 18  // S
+  },
 
-columns:{
-bookingId:0,
-customerName:1,
-deliveryLocation:2,
-driveTime:3,
-distance:4,
-totalTime:5,
-bookingDate:6,
-pickupDate:7,
-rentalLength:8,
-dropoffDate:9,
-driverName:10,
-latitude:11,
-longitude:12,
-lastUpdated:13,
-status:14,
-deliveryLatitude:15,
-deliveryLongitude:16
-},
+  shopLocation: {
+    lat: 44.773071217487626,
+    lng: -85.73030818718583,
+    name: "Boat Shop"
+  },
 
-shopLocation:{
-lat:44.773071217487626,
-lng:-85.73030818718583,
-name:"Boat Shop"
-}
-
+  refreshMs: 5000
 };
 
 let map;
-let markers={};
+let markers = {};
+let infoWindows = {};
 
-function initMap(){
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: CONFIG.shopLocation,
+    zoom: 11
+  });
 
-map=new google.maps.Map(document.getElementById("map"),{
-center:CONFIG.shopLocation,
-zoom:12
-});
+  new google.maps.Marker({
+    position: CONFIG.shopLocation,
+    map: map,
+    title: CONFIG.shopLocation.name
+  });
 
-new google.maps.Marker({
-position:CONFIG.shopLocation,
-map:map,
-title:"Boat Shop"
-});
-
-fetchData();
-
-setInterval(fetchData,60000);
-
+  fetchData();
+  setInterval(fetchData, CONFIG.refreshMs);
 }
 
-async function fetchData(){
-
-try{
-
-const response=await fetch(CONFIG.sheetUrl);
-const text=await response.text();
-
-const rows=parseCSV(text);
-
-updateDashboard(rows);
-
-document.getElementById("lastUpdate").innerText="Last updated: "+new Date().toLocaleTimeString();
-
-}catch(error){
-
-console.error(error);
-
-document.getElementById("driverList").innerHTML="⚠️ Could not load Google Sheet";
-
+async function fetchData() {
+  try {
+    const response = await fetch(CONFIG.sheetUrl, { cache: "no-store" });
+    const text = await response.text();
+    const rows = parseCSV(text);
+    updateDashboard(rows);
+    document.getElementById("lastUpdate").innerText =
+      "Last updated: " + new Date().toLocaleTimeString();
+  } catch (error) {
+    console.error(error);
+    document.getElementById("driverList").innerHTML =
+      "⚠️ Could not load Google Sheet";
+  }
 }
 
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (cell !== "" || row.length > 0) {
+        row.push(cell.trim());
+        rows.push(row);
+        row = [];
+        cell = "";
+      }
+      if (char === "\r" && next === "\n") i++;
+    } else {
+      cell += char;
+    }
+  }
+
+  if (cell !== "" || row.length > 0) {
+    row.push(cell.trim());
+    rows.push(row);
+  }
+
+  rows.shift();
+  return rows;
 }
 
-function parseCSV(text){
+function updateDashboard(rows) {
+  const drivers = {};
 
-const rows=text.split("\n").map(r=>r.split(","));
+  rows.forEach(row => {
+    const driverName = row[CONFIG.columns.driverName];
+    const lat = parseFloat(row[CONFIG.columns.latitude]);
+    const lng = parseFloat(row[CONFIG.columns.longitude]);
 
-rows.shift();
+    if (driverName && driverName.trim() !== "" && !isNaN(lat) && !isNaN(lng)) {
+      drivers[driverName] = {
+        bookingId: row[CONFIG.columns.bookingId] || "",
+        customerName: row[CONFIG.columns.customerName] || "",
+        email: row[CONFIG.columns.email] || "",
+        phone: row[CONFIG.columns.phone] || "",
+        status: row[CONFIG.columns.status] || "En Route",
+        item: row[CONFIG.columns.item] || "",
+        startDate: row[CONFIG.columns.startDate] || "",
+        endDate: row[CONFIG.columns.endDate] || "",
+        partySize: row[CONFIG.columns.partySize] || "",
+        total: row[CONFIG.columns.total] || "",
+        bookingUrl: row[CONFIG.columns.bookingUrl] || "",
+        createdAt: row[CONFIG.columns.createdAt] || "",
+        deliveryLocation: row[CONFIG.columns.deliveryLocation] || "",
+        driverName: driverName,
+        latitude: lat,
+        longitude: lng,
+        lastUpdated: row[CONFIG.columns.lastUpdated] || "",
+        deliveryLatitude: parseFloat(row[CONFIG.columns.deliveryLatitude]),
+        deliveryLongitude: parseFloat(row[CONFIG.columns.deliveryLongitude])
+      };
+    }
+  });
 
-return rows;
-
+  updateDriverList(drivers);
+  updateMarkers(drivers);
 }
 
-function updateDashboard(rows){
+function updateDriverList(drivers) {
+  const list = document.getElementById("driverList");
+  const values = Object.values(drivers);
 
-const drivers={};
+  if (values.length === 0) {
+    list.innerHTML = "No active drivers found.";
+    return;
+  }
 
-rows.forEach(row=>{
+  let html = "";
 
-const name=row[CONFIG.columns.driverName];
-const lat=parseFloat(row[CONFIG.columns.latitude]);
-const lng=parseFloat(row[CONFIG.columns.longitude]);
+  values.forEach(driver => {
+    html += `
+      <div class="driver-card">
+        <div><span class="label">Driver:</span> ${escapeHtml(driver.driverName)}</div>
+        <div><span class="label">Booking ID:</span> ${escapeHtml(driver.bookingId)}</div>
+        <div><span class="label">Customer:</span> ${escapeHtml(driver.customerName)}</div>
+        <div><span class="label">Phone:</span> ${escapeHtml(driver.phone)}</div>
+        <div><span class="label">Status:</span> ${escapeHtml(driver.status)}</div>
+        <div><span class="label">Location:</span> ${escapeHtml(driver.deliveryLocation)}</div>
+        <div class="small">Lat: ${driver.latitude}, Lng: ${driver.longitude}</div>
+      </div>
+    `;
+  });
 
-if(name && !isNaN(lat) && !isNaN(lng)){
-
-drivers[name]={
-
-name:name,
-lat:lat,
-lng:lng,
-customer:row[CONFIG.columns.customerName],
-deliveryLocation:row[CONFIG.columns.deliveryLocation],
-status:row[CONFIG.columns.status]||"En Route"
-
-};
-
+  list.innerHTML = html;
 }
 
-});
+function updateMarkers(drivers) {
+  Object.keys(markers).forEach(name => {
+    if (!drivers[name]) {
+      markers[name].setMap(null);
+      delete markers[name];
+      if (infoWindows[name]) delete infoWindows[name];
+    }
+  });
 
-updateDriverList(drivers);
+  Object.values(drivers).forEach(driver => {
+    const pos = { lat: driver.latitude, lng: driver.longitude };
 
-updateMarkers(drivers);
+    const infoContent = `
+      <div style="min-width:220px;">
+        <strong>${escapeHtml(driver.driverName)}</strong><br>
+        Booking: ${escapeHtml(driver.bookingId)}<br>
+        Customer: ${escapeHtml(driver.customerName)}<br>
+        Status: ${escapeHtml(driver.status)}<br>
+        Delivery: ${escapeHtml(driver.deliveryLocation)}<br>
+        ${driver.bookingUrl ? `<a href="${driver.bookingUrl}" target="_blank">Open Booking</a>` : ""}
+      </div>
+    `;
 
+    if (markers[driver.driverName]) {
+      markers[driver.driverName].setPosition(pos);
+      if (infoWindows[driver.driverName]) {
+        infoWindows[driver.driverName].setContent(infoContent);
+      }
+    } else {
+      const marker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        title: driver.driverName
+      });
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: infoContent
+      });
+
+      marker.addListener("click", () => {
+        Object.values(infoWindows).forEach(iw => iw.close());
+        infoWindow.open(map, marker);
+      });
+
+      markers[driver.driverName] = marker;
+      infoWindows[driver.driverName] = infoWindow;
+    }
+  });
 }
 
-function updateDriverList(drivers){
-
-let html="";
-
-Object.values(drivers).forEach(driver=>{
-
-html+=`
-
-<div class="driver-card">
-
-<div><span class="label">Driver:</span> ${driver.name}</div>
-<div><span class="label">Customer:</span> ${driver.customer}</div>
-<div><span class="label">Delivery:</span> ${driver.deliveryLocation}</div>
-<div><span class="label">Status:</span> ${driver.status}</div>
-
-</div>
-
-`;
-
-});
-
-document.getElementById("driverList").innerHTML=html;
-
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
-function updateMarkers(drivers){
-
-Object.keys(markers).forEach(name=>{
-
-if(!drivers[name]){
-
-markers[name].setMap(null);
-delete markers[name];
-
-}
-
-});
-
-Object.values(drivers).forEach(driver=>{
-
-const pos={lat:driver.lat,lng:driver.lng};
-
-if(markers[driver.name]){
-
-markers[driver.name].setPosition(pos);
-
-}else{
-
-markers[driver.name]=new google.maps.Marker({
-position:pos,
-map:map,
-title:driver.name
-});
-
-}
-
-});
-
-}
-
-window.initMap=initMap;
-
+window.initMap = initMap;
 </script>
-
 
 <script async defer
 src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs&callback=initMap">
