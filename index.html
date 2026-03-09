@@ -1,265 +1,1090 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Driver Dispatch</title>
-<style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-}
-.container{
-  display:flex;
-  height:100vh;
-}
-.sidebar{
-  width:420px;
-  background:white;
-  padding:20px;
-  border-right:2px solid #ddd;
-  overflow-y:auto;
-}
-#map{
-  flex:1;
-  height:100vh;
-}
-input,select{
-  width:100%;
-  padding:10px;
-  margin-top:6px;
-  margin-bottom:12px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:6px;
-  font-weight:bold;
-  cursor:pointer;
-}
-.start{
-  background:#4CAF50;
-  color:white;
-}
-.stop{
-  background:#f44336;
-  color:white;
-  margin-top:8px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Tracking Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 420px;
+            background: #ffffff;
+            border-right: 3px solid #e0e0e0;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #4CAF50;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .last-update {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .form-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e6e6e6;
+        }
+
+        .form-card h3 {
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 22px;
+        }
+
+        .form-card p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fff;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .button-row button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-box {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .status-box.active {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-box.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-box.waiting {
+            display: block;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .coords {
+            margin-top: 10px;
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.5;
+            display: none;
+            white-space: pre-line;
+        }
+
+        .driver-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 6px solid;
+            transition: all 0.3s;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .driver-card:hover {
+            transform: translateX(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .driver-card.selected {
+            background: #e8f5e9;
+            border-left-width: 8px;
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.3);
+        }
+
+        .driver-card.active {
+            border-color: #4CAF50;
+        }
+
+        .driver-card.returning {
+            border-color: #2196F3;
+        }
+
+        .driver-card.at-location {
+            border-color: #FF9800;
+        }
+
+        .driver-card.offline {
+            border-color: #f44336;
+            opacity: 0.7;
+        }
+
+        .driver-name {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #2c3e50;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+        }
+
+        .status-badge.active {
+            background: #4CAF50;
+        }
+
+        .status-badge.returning {
+            background: #2196F3;
+        }
+
+        .status-badge.at-location {
+            background: #FF9800;
+        }
+
+        .status-badge.offline {
+            background: #f44336;
+        }
+
+        .driver-info {
+            font-size: 15px;
+            line-height: 2;
+            color: #333;
+        }
+
+        .driver-info .label {
+            color: #666;
+            display: inline-block;
+            width: 140px;
+            font-weight: 600;
+        }
+
+        .driver-info .value {
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .eta-row {
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .location-time {
+            font-size: 13px;
+            color: #999;
+            margin-top: 12px;
+            font-style: italic;
+        }
+
+        #map {
+            flex: 1;
+            position: relative;
+        }
+
+        .refresh-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid #e0e0e0;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .refresh-indicator.active {
+            background: rgba(76, 175, 80, 0.95);
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 5px solid #e0e0e0;
+            border-top: 5px solid #4CAF50;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: #333;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #45a049;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <h1>🚤 Driver Tracker</h1>
+                <div class="last-update">Last updated: <span id="lastUpdate">--</span></div>
+            </div>
 
-<div class="container">
-  <div class="sidebar">
-    <h2>🚤 Driver Dispatch</h2>
-    <div>Last update: <span id="lastUpdate">--</span></div>
-    <hr>
+            <div class="form-card">
+                <h3>Driver Check-In</h3>
+                <p>Enter driver details and start live tracking.</p>
 
-    <h3>Driver Check-In</h3>
+                <div class="input-group">
+                    <label for="driverName">Driver Name</label>
+                    <input id="driverName" type="text" placeholder="Enter driver name">
+                </div>
 
-    <label>Driver Name</label>
-    <input id="driverName">
+                <div class="input-group">
+                    <label for="bookingId">Booking ID</label>
+                    <input id="bookingId" type="text" placeholder="Enter booking ID">
+                </div>
 
-    <label>Booking ID</label>
-    <input id="bookingId">
+                <div class="input-group">
+                    <label for="deliveryAddress">Delivery Address</label>
+                    <input id="deliveryAddress" type="text" placeholder="Enter delivery address">
+                </div>
 
-    <label>Delivery Address</label>
-    <input id="deliveryAddress">
+                <div class="input-group">
+                    <label for="driverStatus">Status</label>
+                    <select id="driverStatus">
+                        <option value="En Route">En Route</option>
+                        <option value="At Customer Location">At Customer Location</option>
+                        <option value="Returning to Shop">Returning to Shop</option>
+                        <option value="At Shop">At Shop</option>
+                    </select>
+                </div>
 
-    <label>Status</label>
-    <select id="driverStatus">
-      <option>En Route</option>
-      <option>At Customer Location</option>
-      <option>Returning to Shop</option>
-      <option>At Shop</option>
-    </select>
+                <div class="button-row">
+                    <button class="start-btn" onclick="startTracking()">Start Tracking</button>
+                    <button class="stop-btn" onclick="stopTracking()">Stop Tracking</button>
+                </div>
 
-    <button class="start" onclick="startTracking()">Start Tracking</button>
-    <button class="stop" onclick="stopTracking()">Stop Tracking</button>
+                <div id="statusBox" class="status-box"></div>
+                <div id="coordsBox" class="coords"></div>
+            </div>
 
-    <div id="trackingStatus" style="margin-top:12px;"></div>
-  </div>
+            <div id="driverList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading driver data...</div>
+                </div>
+            </div>
+        </div>
 
-  <div id="map"></div>
-</div>
+        <div id="map">
+            <div class="refresh-indicator" id="refreshIndicator">
+                Next update in <span id="countdown">5</span>s
+            </div>
+        </div>
+    </div>
 
-<script>
-const CONFIG = {
-  sheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHKsy7EW-VkVb8Deh-roIx377JryixHBo3i_b5tZQKkjDith2kSCr74nS1lq9vV36SljfSZNmNSOvs/pub?gid=1552296296&single=true&output=csv',
-  webhook: 'https://hooks.zapier.com/hooks/catch/25958410/ug08crb/',
-  refreshInterval: 5000,
-  shop: {
-    lat: 44.773071217487626,
-    lng: -85.73030818718583
-  }
-};
+    <script>
+        const WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/25958410/ug08crb/";
 
-let map;
-let markers = {};
-let trackingInterval = null;
+        const CONFIG = {
+            sheetUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQHKsy7EW-VkVb8Deh-roIx377JryixHBo3i_b5tZQKkjDith2kSCr74nS1lq9vV36SljfSZNmNSOvs/pub?gid=1552296296&single=true&output=csv',
+            sheetId: '1SUsBk_K5AaFQJciMJLBG2uwCvg70IVPl8rGf3VQ0T9s',
+            gid: '1552296296',
+            refreshInterval: 5000,
+            columns: {
+                bookingId: 0,
+                customerName: 1,
+                deliveryLocation: 2,
+                driveTime: 3,
+                distance: 4,
+                totalTime: 5,
+                bookingDate: 6,
+                pickupDate: 7,
+                rentalLength: 8,
+                dropoffDate: 9,
+                driverName: 10,
+                latitude: 11,
+                longitude: 12,
+                lastUpdated: 13,
+                status: 14,
+                deliveryLatitude: 15,
+                deliveryLongitude: 16
+            },
+            shopLocation: {
+                lat: 44.773071217487626,
+                lng: -85.73030818718583,
+                name: "Boat Shop"
+            }
+        };
 
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    zoom: 11,
-    center: CONFIG.shop
-  });
+        let map;
+        let markers = {};
+        let deliveryMarkers = {};
+        let countdown = 5;
+        let countdownInterval;
+        let selectedDriver = null;
+        let trackingInterval = null;
+        let isTracking = false;
+        let localDrivers = {};
 
-  new google.maps.Marker({
-    position: CONFIG.shop,
-    map: map,
-    title: "Boat Shop"
-  });
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: CONFIG.shopLocation,
+                zoom: 12,
+                styles: [
+                    {elementType: 'geometry', stylers: [{color: '#ebe3cd'}]},
+                    {elementType: 'labels.text.fill', stylers: [{color: '#523735'}]},
+                    {elementType: 'labels.text.stroke', stylers: [{color: '#f5f1e6'}]},
+                    {featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{color: '#c9b2a6'}]},
+                    {featureType: 'administrative.land_parcel', elementType: 'geometry.stroke', stylers: [{color: '#dcd2be'}]},
+                    {featureType: 'administrative.land_parcel', elementType: 'labels.text.fill', stylers: [{color: '#ae9e90'}]},
+                    {featureType: 'poi', elementType: 'geometry', stylers: [{color: '#dfd2ae'}]},
+                    {featureType: 'poi', elementType: 'labels.text.fill', stylers: [{color: '#93817c'}]},
+                    {featureType: 'road', elementType: 'geometry', stylers: [{color: '#f5f1e6'}]},
+                    {featureType: 'road.arterial', elementType: 'geometry', stylers: [{color: '#fdfcf8'}]},
+                    {featureType: 'road.highway', elementType: 'geometry', stylers: [{color: '#f8c967'}]},
+                    {featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{color: '#e9bc62'}]},
+                    {featureType: 'water', elementType: 'geometry.fill', stylers: [{color: '#b9d3c2'}]},
+                    {featureType: 'water', elementType: 'labels.text.fill', stylers: [{color: '#92998d'}]}
+                ]
+            });
 
-  fetchSheet();
-  setInterval(fetchSheet, CONFIG.refreshInterval);
-}
+            new google.maps.Marker({
+                position: CONFIG.shopLocation,
+                map: map,
+                icon: {
+                    url: 'https://aussiewatersports.com/wp-content/uploads/2020/05/Aussie-logo-web.png',
+                    scaledSize: new google.maps.Size(50, 50),
+                    anchor: new google.maps.Point(25, 25)
+                },
+                title: CONFIG.shopLocation.name,
+                zIndex: 1000
+            });
 
-async function fetchSheet() {
-  try {
-    const res = await fetch(CONFIG.sheetUrl, { cache: "no-store" });
-    const text = await res.text();
-    const rows = parseCSV(text);
-
-    rows.forEach(row => {
-      const driver = row[10];
-      const lat = parseFloat(row[11]);
-      const lng = parseFloat(row[12]);
-
-      if (driver && !isNaN(lat) && !isNaN(lng)) {
-        updateDriver(driver, lat, lng);
-      }
-    });
-
-    document.getElementById("lastUpdate").innerText = new Date().toLocaleTimeString();
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-function parseCSV(text) {
-  const rows = [];
-  let currentRow = [];
-  let currentField = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    const nextChar = text[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentField += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      currentRow.push(currentField.trim());
-      currentField = '';
-    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (currentField || currentRow.length > 0) {
-        currentRow.push(currentField.trim());
-        if (currentRow.some(field => field !== '')) {
-          rows.push(currentRow);
+            fetchData();
+            startCountdown();
         }
-        currentRow = [];
-        currentField = '';
-      }
-      if (char === '\r' && nextChar === '\n') i++;
-    } else {
-      currentField += char;
-    }
-  }
 
-  if (currentField || currentRow.length > 0) {
-    currentRow.push(currentField.trim());
-    if (currentRow.some(field => field !== '')) {
-      rows.push(currentRow);
-    }
-  }
+        function showStatus(message, type) {
+            const box = document.getElementById("statusBox");
+            box.textContent = message;
+            box.className = `status-box ${type}`;
+        }
 
-  if (rows.length > 0) rows.shift();
-  return rows;
-}
+        function startTracking() {
+            const driverName = document.getElementById("driverName").value.trim();
+            const bookingId = document.getElementById("bookingId").value.trim();
+            const deliveryAddress = document.getElementById("deliveryAddress").value.trim();
+            const status = document.getElementById("driverStatus").value;
 
-function updateDriver(name, lat, lng) {
-  const pos = { lat, lng };
+            if (!driverName) {
+                showStatus("Please enter driver name.", "error");
+                return;
+            }
 
-  if (markers[name]) {
-    markers[name].setPosition(pos);
-  } else {
-    markers[name] = new google.maps.Marker({
-      position: pos,
-      map: map,
-      title: name,
-      icon: {
-        url: "https://cdn-icons-png.flaticon.com/512/854/854894.png",
-        scaledSize: new google.maps.Size(40, 40)
-      }
-    });
-  }
-}
+            if (isTracking) {
+                showStatus("Already tracking.", "waiting");
+                return;
+            }
 
-function startTracking() {
-  const name = document.getElementById("driverName").value.trim();
-  if (!name) {
-    alert("Enter driver name");
-    return;
-  }
+            isTracking = true;
+            showStatus("Starting live tracking...", "waiting");
 
-  sendLocation();
-  trackingInterval = setInterval(sendLocation, 10000);
-}
+            sendLocation(driverName, bookingId, deliveryAddress, status, true);
 
-function stopTracking() {
-  clearInterval(trackingInterval);
-  trackingInterval = null;
-  document.getElementById("trackingStatus").innerText = "Tracking stopped";
-}
+            trackingInterval = setInterval(() => {
+                const currentStatus = document.getElementById("driverStatus").value;
+                const currentBooking = document.getElementById("bookingId").value.trim();
+                const currentDelivery = document.getElementById("deliveryAddress").value.trim();
+                sendLocation(driverName, currentBooking, currentDelivery, currentStatus, false);
+            }, 10000);
+        }
 
-function sendLocation() {
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
+        function stopTracking() {
+            clearInterval(trackingInterval);
+            trackingInterval = null;
+            isTracking = false;
+            showStatus("Tracking stopped.", "error");
+        }
 
-    const name = document.getElementById("driverName").value;
-    const booking = document.getElementById("bookingId").value;
-    const delivery = document.getElementById("deliveryAddress").value;
-    const status = document.getElementById("driverStatus").value;
+        function sendLocation(driverName, bookingId, deliveryAddress, status, firstTime) {
+            if (!navigator.geolocation) {
+                showStatus("Geolocation is not supported.", "error");
+                return;
+            }
 
-    updateDriver(name, lat, lng);
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
 
-    const payload = new URLSearchParams({
-      driver_name: name,
-      booking_id: booking,
-      delivery_location: delivery,
-      status: status,
-      latitude: lat,
-      longitude: lng,
-      timestamp: new Date().toISOString()
-    });
+                    localDrivers[driverName] = {
+                        name: driverName,
+                        lat: latitude,
+                        lng: longitude,
+                        bookingId: bookingId || '',
+                        customer: '',
+                        deliveryLocation: deliveryAddress || '',
+                        driveTime: '',
+                        status: status || 'En Route',
+                        lastUpdated: new Date().toISOString(),
+                        deliveryLat: NaN,
+                        deliveryLng: NaN
+                    };
 
-    await fetch(CONFIG.webhook, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: payload
-    });
+                    updateDriverList(localDrivers);
+                    updateMarkers(localDrivers);
 
-    document.getElementById("trackingStatus").innerText =
-      "Location sent " + new Date().toLocaleTimeString();
-  });
-}
+                    try {
+                        const payload = new URLSearchParams({
+                            driver_name: driverName,
+                            booking_id: bookingId,
+                            delivery_location: deliveryAddress,
+                            status: status,
+                            latitude: latitude.toFixed(6),
+                            longitude: longitude.toFixed(6),
+                            timestamp: new Date().toISOString()
+                        });
 
-window.initMap = initMap;
-</script>
+                        await fetch(WEBHOOK_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+                            body: payload.toString()
+                        });
 
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs&callback=initMap"></script>
+                        showStatus("✅ Location sent to Zapier.", "active");
 
+                        const coordsBox = document.getElementById("coordsBox");
+                        coordsBox.style.display = "block";
+                        coordsBox.textContent =
+`Driver: ${driverName}
+Booking: ${bookingId || '-'}
+Status: ${status}
+Lat: ${latitude.toFixed(6)}
+Lng: ${longitude.toFixed(6)}
+Accuracy: ±${Math.round(accuracy)}m
+Time: ${new Date().toLocaleTimeString()}`;
+                    } catch (error) {
+                        console.error(error);
+                        showStatus("❌ Could not send location to Zapier.", "error");
+                    }
+                },
+                (error) => {
+                    showStatus("GPS error: " + error.message, "error");
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(CONFIG.sheetUrl, { cache: "no-store" });
+                const text = await response.text();
+
+                const data = parseCSV(text);
+                updateDashboard(data);
+
+                const lastUpdateElement = document.getElementById('lastUpdate');
+                if (lastUpdateElement) {
+                    lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                if (Object.keys(localDrivers).length === 0) {
+                    document.getElementById('driverList').innerHTML = `
+                        <div class="empty-state">
+                            <h3>⚠️ Error loading data</h3>
+                            <p>Could not connect to Google Sheets</p>
+                            <p style="font-size: 12px; margin-top: 10px;">Check console for details</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function parseCSV(text) {
+            const rows = [];
+            let currentRow = [];
+            let currentField = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const nextChar = text[i + 1];
+
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        currentField += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    currentRow.push(currentField.trim());
+                    currentField = '';
+                } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                    if (currentField || currentRow.length > 0) {
+                        currentRow.push(currentField.trim());
+                        if (currentRow.some(field => field !== '')) {
+                            rows.push(currentRow);
+                        }
+                        currentRow = [];
+                        currentField = '';
+                    }
+                    if (char === '\r' && nextChar === '\n') {
+                        i++;
+                    }
+                } else {
+                    currentField += char;
+                }
+            }
+
+            if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField.trim());
+                if (currentRow.some(field => field !== '')) {
+                    rows.push(currentRow);
+                }
+            }
+
+            if (rows.length > 0) {
+                rows.shift();
+            }
+
+            return rows;
+        }
+
+        function updateDashboard(data) {
+            const sheetDrivers = {};
+
+            data.forEach((row) => {
+                const driverName = row[CONFIG.columns.driverName];
+                const lat = parseFloat(row[CONFIG.columns.latitude]);
+                const lng = parseFloat(row[CONFIG.columns.longitude]);
+
+                if (driverName && driverName.trim() !== '' && !isNaN(lat) && !isNaN(lng)) {
+                    const deliveryLat = parseFloat(row[CONFIG.columns.deliveryLatitude]);
+                    const deliveryLng = parseFloat(row[CONFIG.columns.deliveryLongitude]);
+                    const status = row[CONFIG.columns.status] || 'En Route';
+
+                    sheetDrivers[driverName] = {
+                        name: driverName,
+                        lat: lat,
+                        lng: lng,
+                        bookingId: row[CONFIG.columns.bookingId] || '',
+                        customer: row[CONFIG.columns.customerName] || '',
+                        deliveryLocation: row[CONFIG.columns.deliveryLocation] || '',
+                        driveTime: row[CONFIG.columns.driveTime] || '',
+                        status: status,
+                        lastUpdated: row[CONFIG.columns.lastUpdated] || new Date().toISOString(),
+                        deliveryLat: deliveryLat,
+                        deliveryLng: deliveryLng
+                    };
+                }
+            });
+
+            const mergedDrivers = { ...localDrivers, ...sheetDrivers };
+            updateDriverList(mergedDrivers);
+            updateMarkers(mergedDrivers);
+        }
+
+        function updateDriverList(drivers) {
+            const driverList = document.getElementById('driverList');
+
+            if (Object.keys(drivers).length === 0) {
+                driverList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>No Active Drivers</h3>
+                        <p>Waiting for driver location updates...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            Object.values(drivers).forEach(driver => {
+                const statusClass = getStatusClass(driver.status);
+                const timeSince = getTimeSince(driver.lastUpdated);
+                const etaToDelivery = calculateETA(
+                    driver.lat, driver.lng,
+                    driver.deliveryLat, driver.deliveryLng,
+                    driver.status
+                );
+                const etaToShop = calculateETAToShop(
+                    driver.lat, driver.lng,
+                    driver.deliveryLat, driver.deliveryLng,
+                    driver.status
+                );
+
+                html += `
+                    <div class="driver-card ${statusClass}" data-driver="${escapeHtml(driver.name)}" onclick="selectDriver('${jsEscape(driver.name)}')">
+                        <div class="driver-name">
+                            ${escapeHtml(driver.name)}
+                            <span class="status-badge ${statusClass}">${escapeHtml(driver.status)}</span>
+                        </div>
+                        <div class="driver-info">
+                            <div><span class="label">Customer:</span> <span class="value">${escapeHtml(driver.customer || 'N/A')}</span></div>
+                            <div><span class="label">Delivery:</span> <span class="value">${escapeHtml(driver.deliveryLocation || 'N/A')}</span></div>
+                            <div><span class="label">Booking ID:</span> <span class="value">${escapeHtml(driver.bookingId || 'N/A')}</span></div>
+                        </div>
+                        <div class="eta-row">
+                            <div><span class="label">🎯 ETA to Delivery:</span> <span class="value">${escapeHtml(etaToDelivery)}</span></div>
+                        </div>
+                        <div class="eta-row">
+                            <div><span class="label">🏠 ETA to Shop:</span> <span class="value">${escapeHtml(etaToShop)}</span></div>
+                        </div>
+                        <div class="location-time">Last updated: ${escapeHtml(timeSince)}</div>
+                    </div>
+                `;
+            });
+
+            driverList.innerHTML = html;
+        }
+
+        function calculateETA(driverLat, driverLng, deliveryLat, deliveryLng, status) {
+            const statusLower = (status || '').toLowerCase();
+
+            if (statusLower.includes('at') && (statusLower.includes('location') || statusLower.includes('customer') || statusLower.includes('delivery'))) {
+                return '✅ At Delivery Site';
+            }
+
+            if (statusLower.includes('return')) {
+                return 'Delivery Complete';
+            }
+
+            if (isNaN(deliveryLat) || isNaN(deliveryLng)) {
+                return 'Delivery location unknown';
+            }
+
+            const distanceMiles = getDistanceInMiles(driverLat, driverLng, deliveryLat, deliveryLng);
+
+            if (distanceMiles < 0.1) {
+                return '🎯 Arriving Now!';
+            }
+
+            const timeMinutes = Math.round((distanceMiles / 30) * 60);
+            const eta = new Date();
+            eta.setMinutes(eta.getMinutes() + timeMinutes);
+
+            return `~${timeMinutes} min (${eta.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+        }
+
+        function calculateETAToShop(driverLat, driverLng, deliveryLat, deliveryLng, status) {
+            const statusLower = (status || '').toLowerCase();
+
+            if (statusLower.includes('at') && statusLower.includes('shop')) {
+                return '✅ At Shop';
+            }
+
+            if (statusLower.includes('return')) {
+                const distanceToShop = getDistanceInMiles(
+                    driverLat, driverLng,
+                    CONFIG.shopLocation.lat, CONFIG.shopLocation.lng
+                );
+
+                if (distanceToShop < 0.1) {
+                    return '✅ At Shop';
+                }
+
+                const timeMinutes = Math.round((distanceToShop / 30) * 60);
+                const eta = new Date();
+                eta.setMinutes(eta.getMinutes() + timeMinutes);
+                return `~${timeMinutes} min (${eta.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+            }
+
+            if (isNaN(deliveryLat) || isNaN(deliveryLng)) {
+                const distanceToShop = getDistanceInMiles(
+                    driverLat, driverLng,
+                    CONFIG.shopLocation.lat, CONFIG.shopLocation.lng
+                );
+
+                if (distanceToShop < 0.1) {
+                    return '✅ At Shop';
+                }
+
+                const timeMinutes = Math.round((distanceToShop / 30) * 60);
+                const eta = new Date();
+                eta.setMinutes(eta.getMinutes() + timeMinutes);
+                return `~${timeMinutes} min (${eta.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+            }
+
+            const distanceToDelivery = getDistanceInMiles(driverLat, driverLng, deliveryLat, deliveryLng);
+            const distanceFromDeliveryToShop = getDistanceInMiles(deliveryLat, deliveryLng, CONFIG.shopLocation.lat, CONFIG.shopLocation.lng);
+
+            const timeToDelivery = Math.round((distanceToDelivery / 30) * 60);
+            const dropOffBuffer = 30;
+            const timeBackToShop = Math.round((distanceFromDeliveryToShop / 30) * 60);
+            const totalMinutes = timeToDelivery + dropOffBuffer + timeBackToShop;
+
+            const eta = new Date();
+            eta.setMinutes(eta.getMinutes() + totalMinutes);
+
+            return `~${totalMinutes} min (${eta.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})`;
+        }
+
+        function getDistanceInMiles(lat1, lon1, lat2, lon2) {
+            const R = 3959;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function selectDriver(driverName) {
+            selectedDriver = driverName;
+
+            document.querySelectorAll('.driver-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            const selectedCard = document.querySelector(`[data-driver="${cssEscape(driverName)}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+
+            if (markers[driverName]) {
+                map.panTo(markers[driverName].getPosition());
+                map.setZoom(14);
+                markers[driverName].setAnimation(google.maps.Animation.BOUNCE);
+                setTimeout(() => {
+                    markers[driverName].setAnimation(null);
+                }, 2100);
+            }
+        }
+
+        function updateMarkers(drivers) {
+            Object.keys(markers).forEach(name => {
+                if (!drivers[name]) {
+                    markers[name].setMap(null);
+                    delete markers[name];
+                }
+            });
+
+            Object.keys(deliveryMarkers).forEach(name => {
+                if (!drivers[name]) {
+                    deliveryMarkers[name].setMap(null);
+                    delete deliveryMarkers[name];
+                }
+            });
+
+            Object.values(drivers).forEach(driver => {
+                const position = { lat: driver.lat, lng: driver.lng };
+
+                if (markers[driver.name]) {
+                    markers[driver.name].setPosition(position);
+                } else {
+                    markers[driver.name] = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: driver.name,
+                        icon: {
+                            url: 'https://cdn-icons-png.flaticon.com/512/123/123919.png',
+                            scaledSize: new google.maps.Size(40, 40),
+                            anchor: new google.maps.Point(20, 20)
+                        }
+                    });
+
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                            <div style="color: #333; padding: 12px; font-family: 'Segoe UI', sans-serif; min-width: 250px;">
+                                <h3 style="margin: 0 0 12px 0; color: #2c3e50; font-size: 18px;">${escapeHtml(driver.name)}</h3>
+                                <p style="margin: 8px 0; font-size: 14px;"><strong>Customer:</strong> ${escapeHtml(driver.customer || '')}</p>
+                                <p style="margin: 8px 0; font-size: 14px;"><strong>Delivery:</strong> ${escapeHtml(driver.deliveryLocation || '')}</p>
+                                <p style="margin: 8px 0; font-size: 14px;"><strong>Status:</strong> ${escapeHtml(driver.status || '')}</p>
+                                <hr style="margin: 10px 0; border: none; border-top: 1px solid #e0e0e0;">
+                                <p style="margin: 8px 0; font-size: 14px;"><strong>🎯 ETA to Delivery:</strong> ${escapeHtml(calculateETA(driver.lat, driver.lng, driver.deliveryLat, driver.deliveryLng, driver.status))}</p>
+                                <p style="margin: 8px 0; font-size: 14px;"><strong>🏠 ETA to Shop:</strong> ${escapeHtml(calculateETAToShop(driver.lat, driver.lng, driver.deliveryLat, driver.deliveryLng, driver.status))}</p>
+                            </div>
+                        `
+                    });
+
+                    markers[driver.name].addListener('click', () => {
+                        Object.values(markers).forEach(m => {
+                            if (m.infoWindow) {
+                                m.infoWindow.close();
+                            }
+                        });
+
+                        infoWindow.open(map, markers[driver.name]);
+                        markers[driver.name].infoWindow = infoWindow;
+                        selectDriver(driver.name);
+                    });
+                }
+
+                if (!isNaN(driver.deliveryLat) && !isNaN(driver.deliveryLng)) {
+                    const deliveryPosition = { lat: driver.deliveryLat, lng: driver.deliveryLng };
+
+                    if (deliveryMarkers[driver.name]) {
+                        deliveryMarkers[driver.name].setPosition(deliveryPosition);
+                    } else {
+                        deliveryMarkers[driver.name] = new google.maps.Marker({
+                            position: deliveryPosition,
+                            map: map,
+                            title: `Delivery: ${driver.customer || ''}`,
+                            icon: {
+                                path: 'M 0,0 L 0,-20 L 15,-15 L 0,-10 Z',
+                                fillColor: '#FF9800',
+                                fillOpacity: 1,
+                                strokeColor: '#FFF',
+                                strokeWeight: 2,
+                                scale: 1
+                            },
+                            label: {
+                                text: '📍',
+                                fontSize: '24px',
+                                color: '#FF9800'
+                            }
+                        });
+
+                        const deliveryInfoWindow = new google.maps.InfoWindow({
+                            content: `
+                                <div style="color: #333; padding: 12px; font-family: 'Segoe UI', sans-serif;">
+                                    <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 16px;">📍 Delivery Location</h3>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Customer:</strong> ${escapeHtml(driver.customer || '')}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Address:</strong> ${escapeHtml(driver.deliveryLocation || '')}</p>
+                                    <p style="margin: 5px 0; font-size: 14px;"><strong>Driver:</strong> ${escapeHtml(driver.name || '')}</p>
+                                </div>
+                            `
+                        });
+
+                        deliveryMarkers[driver.name].addListener('click', () => {
+                            deliveryInfoWindow.open(map, deliveryMarkers[driver.name]);
+                        });
+                    }
+                }
+            });
+        }
+
+        function getStatusClass(status) {
+            if (!status) return 'offline';
+            status = status.toLowerCase();
+            if (status.includes('route') || status.includes('enroute')) return 'active';
+            if (status.includes('return')) return 'returning';
+            if (status.includes('location') || status.includes('customer') || status.includes('delivery')) return 'at-location';
+            return 'offline';
+        }
+
+        function getTimeSince(timestamp) {
+            if (!timestamp) return 'Unknown';
+            try {
+                const lastUpdate = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now - lastUpdate;
+                const diffMins = Math.floor(diffMs / 60000);
+
+                if (diffMins < 1) return 'Just now';
+                if (diffMins === 1) return '1 minute ago';
+                if (diffMins < 60) return `${diffMins} minutes ago`;
+
+                const diffHours = Math.floor(diffMins / 60);
+                if (diffHours === 1) return '1 hour ago';
+                return `${diffHours} hours ago`;
+            } catch (e) {
+                return timestamp;
+            }
+        }
+
+        function startCountdown() {
+            countdown = Math.floor(CONFIG.refreshInterval / 1000);
+
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            countdownInterval = setInterval(() => {
+                countdown--;
+                const countdownElement = document.getElementById('countdown');
+                if (countdownElement) {
+                    countdownElement.textContent = countdown;
+                }
+
+                if (countdown <= 0) {
+                    const indicator = document.getElementById('refreshIndicator');
+                    if (indicator) {
+                        indicator.classList.add('active');
+                    }
+
+                    fetchData();
+
+                    setTimeout(() => {
+                        if (indicator) {
+                            indicator.classList.remove('active');
+                        }
+                    }, 1000);
+
+                    startCountdown();
+                }
+            }, 1000);
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function jsEscape(value) {
+            return String(value ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+        }
+
+        function cssEscape(value) {
+            return String(value ?? '').replaceAll('"', '\\"');
+        }
+
+        window.initMap = initMap;
+    </script>
+
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAeWt2vpIcYZ-6_bsH9cxdeLWEDYCiuAXs&callback=initMap">
+    </script>
 </body>
 </html>
 
