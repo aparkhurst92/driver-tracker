@@ -189,8 +189,8 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPi7E1UDKjEztr
 // FareHarbor RSS
 const FAREHARBOR_PROXY = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://fareharbor.com/aussiewatersports/feed/');
 
-// Sheet columns: A=RowNum(0), B=Latitude(1), C=Longitude(2), D=Address(3), E=Timestamp(4), F=DriverName(5), G=Status(6), H=BookingId(7)
-const COL = { rowNum:0, latitude:1, longitude:2, address:3, timestamp:4, driverName:5, status:6, bookingId:7 };
+// Sheet columns: A=Timestamp(0), B=Latitude(1), C=Longitude(2), D=Address(3), E=Timestamp2(4), F=DriverName(5), G=Status(6), H=BookingId(7)
+const COL = { timestamp:0, latitude:1, longitude:2, address:3, driverName:5, status:6, bookingId:7 };
 
 const REFRESH_MS = 10000;
 
