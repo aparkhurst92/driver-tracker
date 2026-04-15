@@ -132,8 +132,8 @@ const WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbwPi7E1UDKjEztraNaf
 // ✅ FareHarbor RSS feed — FIXED URL matching your boss's feed
 const FAREHARBOR_RSS_PROXY = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://fareharbor.com/aussiewatersports/feed/');
 
-// Sheet column indexes: A=Timestamp, B=DriverName, C=Latitude, D=Longitude, E=Address, F=Status, G=BookingId
-const COL = { timestamp:0, driverName:1, latitude:2, longitude:3, address:4, status:5, bookingId:6 };
+// Sheet column indexes: A=RowNumber, B=Latitude, C=Longitude, D=Address, E=Timestamp, F=DriverName, G=Status, H=BookingId
+const COL = { timestamp:4, driverName:5, latitude:1, longitude:2, address:3, status:6, bookingId:7 };
 const REFRESH_MS = 10000;
 
 let map, cdVal, cdInt, selectedDriver=null, markers={}, deliveryMarkers={};
