@@ -21,12 +21,12 @@
         .form-card h3 { font-size: 16px; color: #2c3e50; margin-bottom: 14px; font-weight: 700; }
         .input-group { margin-bottom: 12px; }
         .input-group label { display: block; font-weight: 600; color: #555; margin-bottom: 5px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
-        .input-group input, .input-group select { width: 100%; padding: 11px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: #fff; color: #333; -webkit-appearance: none; transition: border-color 0.2s; }
+        .input-group input, .input-group select { width: 100%; padding: 11px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #fff; color: #333; -webkit-appearance: none; transition: border-color 0.2s; }
         .input-group input:focus, .input-group select:focus { outline: none; border-color: #4CAF50; }
         .select-wrapper { position: relative; }
         .select-wrapper::after { content: '▾'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none; font-size: 16px; }
         .btn-row { display: flex; gap: 8px; margin-top: 10px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+        .btn { flex: 1; padding: 13px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
         .btn:active { transform: scale(0.97); }
         .btn:disabled { opacity: 0.35; cursor: not-allowed; }
         .btn-start { background: #4CAF50; color: white; }
@@ -53,13 +53,14 @@
         .status-badge.returning { background: #2196F3; }
         .status-badge.at-location { background: #FF9800; }
         .status-badge.offline { background: #f44336; }
-        .driver-info { font-size: 13px; line-height: 1.9; }
+        .driver-info { font-size: 13px; line-height: 1.9; margin-bottom: 8px; }
         .driver-info .lbl { color: #888; font-weight: 600; display: inline-block; width: 120px; }
         .driver-info .val { color: #2c3e50; font-weight: 500; }
-        .eta-box { background: #fff; padding: 10px 12px; border-radius: 8px; margin-top: 8px; border: 2px solid #e0e0e0; font-size: 13px; line-height: 2; }
-        .eta-box .eta-row { display: flex; justify-content: space-between; }
-        .eta-box .eta-lbl { color: #888; font-weight: 600; }
-        .eta-box .eta-val { font-weight: 700; color: #2c3e50; }
+        .eta-box { background: #fff; padding: 12px 14px; border-radius: 8px; border: 2px solid #e0e0e0; font-size: 13px; }
+        .eta-line { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+        .eta-lbl { color: #888; font-weight: 600; }
+        .eta-val { font-weight: 700; color: #2c3e50; text-align: right; }
+        .eta-note { font-size: 11px; color: #aaa; margin-top: 4px; }
         .loc-time { font-size: 12px; color: #aaa; margin-top: 8px; font-style: italic; }
         .booking-card { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 14px; border-left: 6px solid #2196F3; box-shadow: 0 2px 6px rgba(0,0,0,0.07); cursor: pointer; transition: all 0.2s; }
         .booking-card:hover { transform: translateX(6px); }
@@ -124,7 +125,7 @@
                     <label>Delivery Lake / Launch</label>
                     <div class="select-wrapper">
                         <select id="deliveryLake" onchange="onLakeChange()">
-                            <option value="">— Select Delivery Location —</option>
+                            <option value="">— Select Delivery Lake —</option>
                             <option value="Lake Leelanau Bingham Launch">Lake Leelanau Bingham Launch</option>
                             <option value="Lake Leelanau Narrows Launch">Lake Leelanau Narrows Launch</option>
                             <option value="Long Lake Crescent Shores">Long Lake Crescent Shores</option>
@@ -170,34 +171,36 @@
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const SHOP = { lat: 44.773071217487626, lng: -85.73030818718583, name: "Aussie Water Sports" };
 
-// Lake reference data — lat/lng for each delivery location
+// Lake coordinates — delivery destinations
 const LAKES = {
-    "Lake Leelanau Bingham Launch":  { lat: 45.047200, lng: -85.757300 },
-    "Lake Leelanau Narrows Launch":  { lat: 44.958600, lng: -85.734100 },
-    "Long Lake Crescent Shores":     { lat: 44.735800, lng: -85.689400 },
-    "Spider Lake Boat Ramp":         { lat: 44.698500, lng: -85.817200 }
+    "Lake Leelanau Bingham Launch":  { lat: 45.0472, lng: -85.7573 },
+    "Lake Leelanau Narrows Launch":  { lat: 44.9586, lng: -85.7341 },
+    "Long Lake Crescent Shores":     { lat: 44.7358, lng: -85.6894 },
+    "Spider Lake Boat Ramp":         { lat: 44.6985, lng: -85.8172 }
 };
 
-const ONSITE_MINUTES = 30; // time assumed at delivery location
+const ONSITE_MIN = 30; // minutes assumed on site for boat launch
 
-// Your Google Sheet (API Test Ap) published as CSV
+// Your Google Sheet published as CSV
+// Columns: A=Timestamp(0), B=Latitude(1), C=Longitude(2), D=Address(3), E=Timestamp2(4), F=DriverName(5), G=Status(6), H=BookingId(7)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ1VPNYB4UJSOZTdZFTX9sfUbP5Qeo-c43aMFHwFveQ698_Tkf8DRxtQiEZnOB6dIpc4w9BN0Pobfv/pub?gid=0&single=true&output=csv';
 
-// Apps Script URL — GPS goes directly to Google Sheet
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPi7E1UDKjEztraNafAEsyMis8dUOgXSvBL7nMloiQMUGecVdO4qoA9sFwshjSrRw/exec";
 
-// FareHarbor RSS
 const FAREHARBOR_PROXY = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://fareharbor.com/aussiewatersports/feed/');
 
-// Sheet columns: A=Timestamp(0), B=Latitude(1), C=Longitude(2), D=Address(3), E=Timestamp2(4), F=DriverName(5), G=Status(6), H=BookingId(7)
-const COL = { timestamp:0, latitude:1, longitude:2, address:3, driverName:5, status:6, bookingId:7 };
+// ── EXACT column indexes matching your sheet screenshot ──
+// A(0)=Timestamp  B(1)=Latitude  C(2)=Longitude  D(3)=Address  E(4)=Timestamp  F(5)=DriverName  G(6)=Status  H(7)=BookingId
+const COL = { timestamp:0, lat:1, lng:2, address:3, driverName:5, status:6, bookingId:7 };
 
 const REFRESH_MS = 10000;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let map, cdVal, cdInt, selectedDriver=null, markers={}, lakeMarkers={};
-let trackingInterval=null, isTracking=false, sendCount=0;
-let bookings=[];
+let map, cdVal, cdInt, selectedDriver = null;
+let markers = {}, lakeMarkers = {};
+let trackingInterval = null, isTracking = false, sendCount = 0;
+let bookings = [];
+let localDrivers = {}; // holds GPS data from current session immediately
 
 // ── MAP INIT ──────────────────────────────────────────────────────────────────
 function initMap() {
@@ -219,26 +222,24 @@ function initMap() {
     // Shop marker
     new google.maps.Marker({
         position: SHOP, map,
-        icon: { url:'https://aussiewatersports.com/wp-content/uploads/2020/05/Aussie-logo-web.png', scaledSize:new google.maps.Size(50,50), anchor:new google.maps.Point(25,25) },
+        icon: { url:'https://aussiewatersports.com/wp-content/uploads/2020/05/Aussie-logo-web.png', scaledSize: new google.maps.Size(50,50), anchor: new google.maps.Point(25,25) },
         title: SHOP.name, zIndex: 1000
     });
 
-    // Place lake markers on map
+    // Lake markers
     Object.entries(LAKES).forEach(([name, coords]) => {
-        const marker = new google.maps.Marker({
-            position: coords, map,
-            title: name,
-            icon: { url:'https://cdn-icons-png.flaticon.com/512/3140/3140810.png', scaledSize:new google.maps.Size(34,34), anchor:new google.maps.Point(17,17) },
+        const m = new google.maps.Marker({
+            position: coords, map, title: name,
+            label: { text: '⚓', fontSize: '18px' },
             zIndex: 200
         });
-        const iw = new google.maps.InfoWindow({ content:`
+        const iw = new google.maps.InfoWindow({ content: `
             <div style="padding:10px;font-family:'Segoe UI',sans-serif;color:#333;">
-                <b style="color:#2c3e50;">🚣 ${esc(name)}</b>
-                <p style="margin:6px 0;font-size:12px;color:#888;">${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}</p>
-            </div>`
-        });
-        marker.addListener('click', () => iw.open(map, marker));
-        lakeMarkers[name] = marker;
+                <b style="color:#2c3e50;font-size:14px;">⚓ ${esc(name)}</b><br>
+                <span style="font-size:12px;color:#888;">${coords.lat}, ${coords.lng}</span>
+            </div>` });
+        m.addListener('click', () => iw.open(map, m));
+        lakeMarkers[name] = m;
     });
 
     fetchSheet();
@@ -246,24 +247,27 @@ function initMap() {
     startCD();
 }
 
-// ── WHEN LAKE IS SELECTED in check-in form ────────────────────────────────────
+// ── LAKE SELECTED IN FORM ─────────────────────────────────────────────────────
 function onLakeChange() {
-    const lakeName = document.getElementById('deliveryLake').value;
-    if (lakeName && LAKES[lakeName]) {
-        // Pan map to selected lake
-        map.panTo(LAKES[lakeName]);
+    const lake = document.getElementById('deliveryLake').value;
+    if (lake && LAKES[lake]) {
+        map.panTo(LAKES[lake]);
         map.setZoom(13);
     }
 }
 
-// ── FETCH SHEET GPS DATA ──────────────────────────────────────────────────────
+// ── FETCH SHEET ───────────────────────────────────────────────────────────────
 async function fetchSheet() {
     try {
         const r = await fetch(SHEET_URL + '&t=' + Date.now());
         const t = await r.text();
-        const drivers = getLatest(parseCSV(t));
-        renderDrivers(drivers);
-        renderDriverMarkers(drivers);
+        const rows = parseCSV(t);
+        const sheetDrivers = getLatestPerDriver(rows);
+
+        // Merge: local GPS (from this session) takes priority
+        const merged = Object.assign({}, sheetDrivers, localDrivers);
+        renderDrivers(merged);
+        renderDriverMarkers(merged);
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
     } catch(e) { console.error('Sheet error:', e); }
 }
@@ -273,25 +277,17 @@ async function fetchFareHarbor() {
     try {
         const r = await fetch(FAREHARBOR_PROXY);
         const d = await r.json();
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(d.contents, 'text/xml');
-        const items = xml.querySelectorAll('item');
-        bookings = Array.from(items).map(item => {
-            const title = item.querySelector('title')?.textContent || '';
-            const desc  = item.querySelector('description')?.textContent || '';
-            const pub   = item.querySelector('pubDate')?.textContent || '';
-            const idM   = desc.match(/Booking ID: #(\d+)/);
-            const cuM   = desc.match(/Customer: ([^|]+)/);
-            const deM   = desc.match(/Delivery: ([^|]+)/);
-            const itM   = desc.match(/Item: ([^|]+)/);
-            const stM   = desc.match(/Status: ([^|]+)/);
+        const xml = new DOMParser().parseFromString(d.contents, 'text/xml');
+        bookings = Array.from(xml.querySelectorAll('item')).map(item => {
+            const desc = item.querySelector('description')?.textContent || '';
+            const get  = (re) => { const m = desc.match(re); return m ? m[1].trim() : ''; };
             return {
-                id:       idM ? idM[1].trim() : '',
-                customer: cuM ? cuM[1].trim() : '',
-                delivery: deM ? deM[1].trim() : '',
-                item:     itM ? itM[1].trim() : title,
-                status:   stM ? stM[1].trim() : '',
-                pubDate:  pub
+                id:       get(/Booking ID: #(\d+)/),
+                customer: get(/Customer: ([^|]+)/),
+                delivery: get(/Delivery: ([^|]+)/),
+                item:     get(/Item: ([^|]+)/) || item.querySelector('title')?.textContent || '',
+                status:   get(/Status: ([^|]+)/),
+                pubDate:  item.querySelector('pubDate')?.textContent || ''
             };
         }).filter(b => b.id);
         renderBookings();
@@ -303,33 +299,37 @@ async function fetchFareHarbor() {
 
 // ── CSV PARSER ────────────────────────────────────────────────────────────────
 function parseCSV(text) {
-    const rows=[]; let row=[],field='',inQ=false;
-    for(let i=0;i<text.length;i++){
-        const c=text[i],n=text[i+1];
-        if(c==='"'){if(inQ&&n==='"'){field+='"';i++;}else inQ=!inQ;}
-        else if(c===','&&!inQ){row.push(field.trim());field='';}
-        else if((c==='\n'||c==='\r')&&!inQ){if(field||row.length){row.push(field.trim());if(row.some(f=>f))rows.push(row);row=[];field='';}if(c==='\r'&&n==='\n')i++;}
-        else field+=c;
+    const rows = []; let row = [], field = '', inQ = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i], n = text[i+1];
+        if (c === '"') { if (inQ && n === '"') { field += '"'; i++; } else inQ = !inQ; }
+        else if (c === ',' && !inQ) { row.push(field.trim()); field = ''; }
+        else if ((c === '\n' || c === '\r') && !inQ) {
+            if (field || row.length) { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); row = []; field = ''; }
+            if (c === '\r' && n === '\n') i++;
+        } else field += c;
     }
-    if(field||row.length){row.push(field.trim());if(row.some(f=>f))rows.push(row);}
-    rows.shift(); return rows;
+    if (field || row.length) { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); }
+    rows.shift(); // remove header
+    return rows;
 }
 
-// Keep only latest row per driver by timestamp
-function getLatest(rows) {
-    const d={};
-    rows.forEach(r=>{
-        const name=(r[COL.driverName]||'').trim();
-        const lat=parseFloat(r[COL.latitude]), lng=parseFloat(r[COL.longitude]);
-        if(!name||isNaN(lat)||isNaN(lng)) return;
-        const ts=r[COL.timestamp]||'';
-        if(d[name]&&new Date(ts)<=new Date(d[name].timestamp)) return;
-        d[name]={
+// Keep only the LATEST row per driver based on timestamp
+function getLatestPerDriver(rows) {
+    const d = {};
+    rows.forEach(r => {
+        const name = (r[COL.driverName] || '').trim();
+        const lat  = parseFloat(r[COL.lat]);
+        const lng  = parseFloat(r[COL.lng]);
+        if (!name || isNaN(lat) || isNaN(lng)) return;
+        const ts = r[COL.timestamp] || '';
+        if (d[name] && new Date(ts) <= new Date(d[name].timestamp)) return;
+        d[name] = {
             name, lat, lng,
-            address:   r[COL.address]   || '',
+            address:   (r[COL.address]   || '').trim(),
             timestamp: ts,
-            status:    r[COL.status]    || 'En Route',
-            bookingId: r[COL.bookingId] || ''
+            status:    (r[COL.status]    || 'En Route').trim(),
+            bookingId: (r[COL.bookingId] || '').trim()
         };
     });
     return d;
@@ -343,9 +343,9 @@ function renderDrivers(drivers) {
         return;
     }
     list.innerHTML = Object.values(drivers).map(d => {
-        const sc  = statusCls(d.status);
-        const bk  = bookings.find(b => b.id === d.bookingId);
-        const lake = LAKES[d.address]; // address field stores lake name
+        const sc   = statusCls(d.status);
+        const bk   = bookings.find(b => b.id === d.bookingId);
+        const lake = LAKES[d.address];
         const etas = calcEtas(d, lake);
 
         return `<div class="driver-card ${sc}" data-driver="${esc(d.name)}" onclick="selectDriver('${jsEsc(d.name)}')">
@@ -356,15 +356,21 @@ function renderDrivers(drivers) {
             <div class="driver-info">
                 ${bk ? `<div><span class="lbl">Customer:</span><span class="val"> ${esc(bk.customer)}</span></div>` : ''}
                 ${bk ? `<div><span class="lbl">Boat:</span><span class="val"> ${esc(bk.item)}</span></div>` : ''}
-                <div><span class="lbl">Delivery:</span><span class="val"> ${esc(d.address || 'N/A')}</span></div>
-                <div><span class="lbl">Booking ID:</span><span class="val"> ${esc(d.bookingId || 'N/A')}</span></div>
+                <div><span class="lbl">Delivery:</span><span class="val"> ${esc(d.address || 'Not set')}</span></div>
+                ${d.bookingId ? `<div><span class="lbl">Booking:</span><span class="val"> #${esc(d.bookingId)}</span></div>` : ''}
             </div>
             <div class="eta-box">
-                <div class="eta-row"><span class="eta-lbl">🎯 ETA to Lake:</span><span class="eta-val">${esc(etas.toLake)}</span></div>
-                <div class="eta-row"><span class="eta-lbl">🏠 ETA back to Shop:</span><span class="eta-val">${esc(etas.toShop)}</span></div>
-                ${lake ? `<div style="font-size:11px;color:#aaa;margin-top:4px;">Includes 30 min on-site</div>` : ''}
+                <div class="eta-line">
+                    <span class="eta-lbl">🎯 ETA to Lake:</span>
+                    <span class="eta-val">${esc(etas.toLake)}</span>
+                </div>
+                <div class="eta-line">
+                    <span class="eta-lbl">🏠 Est. Return:</span>
+                    <span class="eta-val">${esc(etas.toShop)}</span>
+                </div>
+                <div class="eta-note">Return includes 30 min on-site for launch</div>
             </div>
-            <div class="loc-time">Updated: ${esc(timeSince(d.timestamp))}</div>
+            <div class="loc-time">📍 Updated: ${esc(timeSince(d.timestamp))}</div>
         </div>`;
     }).join('');
 }
@@ -373,8 +379,8 @@ function renderDrivers(drivers) {
 function calcEtas(driver, lake) {
     const s = (driver.status || '').toLowerCase();
 
-    // ETA to lake
-    let toLake = 'No destination set';
+    // ── ETA to lake ──
+    let toLake;
     if (s.includes('at') && (s.includes('location') || s.includes('customer'))) {
         toLake = '✅ At delivery site';
     } else if (s.includes('return')) {
@@ -387,16 +393,19 @@ function calcEtas(driver, lake) {
             const mins = Math.round((dist / 30) * 60);
             const eta  = new Date();
             eta.setMinutes(eta.getMinutes() + mins);
-            toLake = `~${mins} min (${eta.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})})`;
+            toLake = `~${mins} min (${fmt(eta)})`;
         }
+    } else {
+        toLake = 'No lake selected';
     }
 
-    // ETA back to shop
-    let toShop = 'N/A';
+    // ── Estimated return to shop ──
+    // = drive to lake + 30 min on site + drive lake back to shop
+    let toShop;
     if (s.includes('at') && s.includes('shop')) {
         toShop = '✅ At shop';
     } else if (s.includes('return')) {
-        // Returning — direct distance to shop
+        // Already heading back — just distance to shop
         const dist = miles(driver.lat, driver.lng, SHOP.lat, SHOP.lng);
         if (dist < 0.1) {
             toShop = '✅ At shop';
@@ -404,44 +413,52 @@ function calcEtas(driver, lake) {
             const mins = Math.round((dist / 30) * 60);
             const eta  = new Date();
             eta.setMinutes(eta.getMinutes() + mins);
-            toShop = `~${mins} min (${eta.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})})`;
+            toShop = `~${mins} min (${fmt(eta)})`;
         }
     } else if (lake) {
-        // En route: driver → lake + 30min on site + lake → shop
-        const distToLake  = miles(driver.lat, driver.lng, lake.lat, lake.lng);
-        const distToShop  = miles(lake.lat, lake.lng, SHOP.lat, SHOP.lng);
-        const minsToLake  = Math.round((distToLake / 30) * 60);
-        const minsToShop  = Math.round((distToShop / 30) * 60);
-        const total       = minsToLake + ONSITE_MINUTES + minsToShop;
-        const eta         = new Date();
+        const distToLake = miles(driver.lat, driver.lng, lake.lat, lake.lng);
+        const distToShop = miles(lake.lat, lake.lng, SHOP.lat, SHOP.lng);
+        const total = Math.round((distToLake / 30) * 60) + ONSITE_MIN + Math.round((distToShop / 30) * 60);
+        const eta   = new Date();
         eta.setMinutes(eta.getMinutes() + total);
-        toShop = `~${total} min (${eta.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})})`;
+        toShop = `~${total} min (${fmt(eta)})`;
     } else {
-        // No lake — direct distance to shop
         const dist = miles(driver.lat, driver.lng, SHOP.lat, SHOP.lng);
-        const mins = Math.round((dist / 30) * 60);
+        const mins = Math.round((dist / 30) * 60) + ONSITE_MIN;
         const eta  = new Date();
         eta.setMinutes(eta.getMinutes() + mins);
-        toShop = `~${mins} min (${eta.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})})`;
+        toShop = `~${mins} min (${fmt(eta)})`;
     }
 
     return { toLake, toShop };
 }
 
-// ── RENDER DRIVER MAP MARKERS ─────────────────────────────────────────────────
+function fmt(d) { return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+// ── DRIVER MAP MARKERS ────────────────────────────────────────────────────────
 function renderDriverMarkers(drivers) {
-    Object.keys(markers).forEach(n => { if (!drivers[n]) { markers[n].setMap(null); delete markers[n]; } });
+    // Remove markers for drivers no longer active
+    Object.keys(markers).forEach(n => {
+        if (!drivers[n]) { markers[n].setMap(null); delete markers[n]; }
+    });
+
     Object.values(drivers).forEach(d => {
         const pos = { lat: d.lat, lng: d.lng };
         if (markers[d.name]) {
             markers[d.name].setPosition(pos);
         } else {
+            // Create new marker with truck icon
             markers[d.name] = new google.maps.Marker({
-                position: pos, map, title: d.name,
-                icon: { url:'https://cdn-icons-png.flaticon.com/512/123/123919.png', scaledSize:new google.maps.Size(40,40), anchor:new google.maps.Point(20,20) },
+                position: pos, map,
+                title: d.name,
+                icon: {
+                    url: 'https://cdn-icons-png.flaticon.com/512/123/123919.png',
+                    scaledSize: new google.maps.Size(42, 42),
+                    anchor: new google.maps.Point(21, 21)
+                },
                 zIndex: 500
             });
-            const iw = new google.maps.InfoWindow({ content: buildDriverInfo(d) });
+            const iw = new google.maps.InfoWindow({ content: buildInfoWindow(d) });
             markers[d.name]._iw = iw;
             markers[d.name].addListener('click', () => {
                 Object.values(markers).forEach(m => m._iw && m._iw.close());
@@ -449,28 +466,45 @@ function renderDriverMarkers(drivers) {
                 selectDriver(d.name);
             });
         }
-        if (markers[d.name]._iw) markers[d.name]._iw.setContent(buildDriverInfo(d));
+        // Always refresh info window content
+        if (markers[d.name]._iw) {
+            markers[d.name]._iw.setContent(buildInfoWindow(d));
+        }
     });
 }
 
-function buildDriverInfo(d) {
+function buildInfoWindow(d) {
     const bk   = bookings.find(b => b.id === d.bookingId);
     const lake = LAKES[d.address];
     const etas = calcEtas(d, lake);
-    return `<div style="padding:12px;font-family:'Segoe UI',sans-serif;color:#333;min-width:230px;">
-        <h3 style="margin:0 0 8px;color:#2c3e50;font-size:16px;">${esc(d.name)}</h3>
-        <p style="margin:4px 0;font-size:13px;"><b>Status:</b> ${esc(d.status)}</p>
-        ${bk ? `<p style="margin:4px 0;font-size:13px;"><b>Customer:</b> ${esc(bk.customer)}</p>` : ''}
-        <p style="margin:4px 0;font-size:13px;"><b>Delivery:</b> ${esc(d.address||'N/A')}</p>
+    return `<div style="padding:12px;font-family:'Segoe UI',sans-serif;color:#333;min-width:240px;">
+        <h3 style="margin:0 0 8px;color:#2c3e50;font-size:16px;">🚗 ${esc(d.name)}</h3>
+        <p style="margin:3px 0;font-size:13px;"><b>Status:</b> ${esc(d.status)}</p>
+        ${bk ? `<p style="margin:3px 0;font-size:13px;"><b>Customer:</b> ${esc(bk.customer)}</p>` : ''}
+        <p style="margin:3px 0;font-size:13px;"><b>Delivery:</b> ${esc(d.address || 'Not set')}</p>
         <hr style="margin:8px 0;border:none;border-top:1px solid #eee;">
-        <p style="margin:4px 0;font-size:13px;"><b>🎯 ETA to Lake:</b> ${esc(etas.toLake)}</p>
-        <p style="margin:4px 0;font-size:13px;"><b>🏠 ETA to Shop:</b> ${esc(etas.toShop)}</p>
-        ${lake ? `<p style="margin:4px 0;font-size:11px;color:#aaa;">Includes 30 min on-site</p>` : ''}
-        <p style="margin:6px 0 0;font-size:12px;color:#999;">Updated: ${esc(timeSince(d.timestamp))}</p>
+        <p style="margin:3px 0;font-size:13px;"><b>🎯 ETA to Lake:</b> ${esc(etas.toLake)}</p>
+        <p style="margin:3px 0;font-size:13px;"><b>🏠 Est. Return:</b> ${esc(etas.toShop)}</p>
+        <p style="margin:6px 0 0;font-size:11px;color:#aaa;">Includes 30 min on-site • Updated: ${esc(timeSince(d.timestamp))}</p>
     </div>`;
 }
 
-// ── RENDER BOOKINGS ───────────────────────────────────────────────────────────
+// ── SELECT DRIVER ─────────────────────────────────────────────────────────────
+function selectDriver(name) {
+    selectedDriver = name;
+    document.querySelectorAll('.driver-card').forEach(c => c.classList.remove('selected'));
+    const card = document.querySelector(`[data-driver="${name.replace(/"/g,'\\"')}"]`);
+    if (card) card.classList.add('selected');
+    if (markers[name]) {
+        map.panTo(markers[name].getPosition());
+        map.setZoom(13);
+        markers[name].setAnimation(google.maps.Animation.BOUNCE);
+        setTimeout(() => markers[name].setAnimation(null), 2100);
+    }
+    switchTab('drivers');
+}
+
+// ── BOOKINGS ──────────────────────────────────────────────────────────────────
 function renderBookings() {
     const list = document.getElementById('bookingList');
     if (!bookings.length) {
@@ -492,37 +526,18 @@ function renderBookings() {
                 <div><span class="lbl">Status:</span> ${esc(b.status)}</div>
             </div>
             <span class="booking-date ${cls}">${lbl}</span>
-            <div style="font-size:12px;color:#4CAF50;margin-top:8px;font-weight:600;">Tap to assign to driver →</div>
+            <div style="font-size:12px;color:#4CAF50;margin-top:8px;font-weight:600;">Tap to use this booking →</div>
         </div>`;
     }).join('');
 }
 
-// Tapping a booking pre-fills the check-in form
 function useBooking(id) {
     const b = bookings.find(x => x.id === id);
-    if (b) {
-        document.getElementById('bookingId').value = b.id;
-    }
+    if (b) document.getElementById('bookingId').value = b.id;
     switchTab('checkin');
-    document.getElementById('driverName').focus();
 }
 
-// ── SELECT DRIVER ─────────────────────────────────────────────────────────────
-function selectDriver(name) {
-    selectedDriver = name;
-    document.querySelectorAll('.driver-card').forEach(c => c.classList.remove('selected'));
-    const card = document.querySelector(`[data-driver="${name.replace(/"/g,'\\"')}"]`);
-    if (card) card.classList.add('selected');
-    if (markers[name]) {
-        map.panTo(markers[name].getPosition());
-        map.setZoom(13);
-        markers[name].setAnimation(google.maps.Animation.BOUNCE);
-        setTimeout(() => markers[name].setAnimation(null), 2100);
-    }
-    switchTab('drivers');
-}
-
-// ── CHECK-IN / GPS ────────────────────────────────────────────────────────────
+// ── CHECK-IN / GPS TRACKING ───────────────────────────────────────────────────
 function showMsg(msg, type) {
     const b = document.getElementById("statusMsg");
     b.textContent = msg; b.className = "status-msg " + type;
@@ -562,11 +577,28 @@ function sendLoc() {
         const { latitude, longitude } = pos.coords;
         sendCount++;
 
+        // Update local state immediately so map moves without waiting for sheet
+        localDrivers[driverName] = {
+            name: driverName,
+            lat: latitude,
+            lng: longitude,
+            address: lake,
+            timestamp: new Date().toISOString(),
+            status: status,
+            bookingId: bookingId
+        };
+
+        // Immediately re-render with new position
+        const allDrivers = Object.assign({}, localDrivers);
+        renderDrivers(allDrivers);
+        renderDriverMarkers(allDrivers);
+
+        // Send to Apps Script → Google Sheet
         const payload = new URLSearchParams({
             "Driver Name": driverName,
             "Latitude":    latitude.toFixed(6),
             "Longitude":   longitude.toFixed(6),
-            "Address":     lake,          // store lake name in Address field
+            "Address":     lake,
             "Timestamp":   new Date().toISOString(),
             "booking_id":  bookingId,
             "status":      status
@@ -581,56 +613,64 @@ function sendLoc() {
             });
             showMsg(`✅ Location sent (#${sendCount}) — map updating`, "ok");
         } catch(e) {
-            showMsg("❌ Could not send location.", "err");
+            showMsg("❌ Could not send. Check connection.", "err");
         }
     }, (err) => {
-        const msgs = {1:"❌ Location denied. Settings → Safari → Location → Allow.", 2:"⚠️ GPS unavailable.", 3:"⏱ GPS timed out…"};
+        const msgs = {
+            1: "❌ Location denied. Settings → Safari → Location → Allow.",
+            2: "⚠️ GPS unavailable.",
+            3: "⏱ GPS timed out…"
+        };
         showMsg(msgs[err.code] || "GPS error: " + err.message, "err");
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 }
 
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
 function switchTab(name) {
-    const names = ['drivers','checkin','bookings'];
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
+    const names = ['drivers', 'checkin', 'bookings'];
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', names[i] === name));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById('tab-'+name).classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function miles(la1,lo1,la2,lo2) {
-    const R=3959, dLa=(la2-la1)*Math.PI/180, dLo=(lo2-lo1)*Math.PI/180;
-    const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
-    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+// ── DISTANCE / HELPERS ────────────────────────────────────────────────────────
+function miles(la1, lo1, la2, lo2) {
+    const R = 3959, dLa = (la2-la1)*Math.PI/180, dLo = (lo2-lo1)*Math.PI/180;
+    const a = Math.sin(dLa/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 function statusCls(s) {
-    if(!s)return'offline'; s=s.toLowerCase();
-    if(s.includes('route')||s.includes('enroute'))return'active';
-    if(s.includes('return'))return'returning';
-    if(s.includes('location')||s.includes('customer')||s.includes('delivery'))return'at-location';
-    return'offline';
+    if (!s) return 'offline'; s = s.toLowerCase();
+    if (s.includes('route') || s.includes('enroute')) return 'active';
+    if (s.includes('return')) return 'returning';
+    if (s.includes('location') || s.includes('customer') || s.includes('delivery')) return 'at-location';
+    return 'offline';
 }
 function timeSince(ts) {
-    if(!ts)return'Unknown';
-    try{const m=Math.floor((Date.now()-new Date(ts))/60000);if(m<1)return'Just now';if(m<60)return`${m} min ago`;return`${Math.floor(m/60)} hr ago`;}
-    catch{return ts;}
+    if (!ts) return 'Unknown';
+    try {
+        const m = Math.floor((Date.now() - new Date(ts)) / 60000);
+        if (m < 1) return 'Just now';
+        if (m < 60) return `${m} min ago`;
+        return `${Math.floor(m/60)} hr ago`;
+    } catch { return ts; }
 }
-function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-function jsEsc(v){return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function esc(v) { return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function jsEsc(v) { return String(v??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
-// ── COUNTDOWN ─────────────────────────────────────────────────────────────────
+// ── COUNTDOWN / AUTO REFRESH ──────────────────────────────────────────────────
 function startCD() {
-    cdVal = REFRESH_MS/1000; clearInterval(cdInt);
+    cdVal = REFRESH_MS / 1000; clearInterval(cdInt);
     cdInt = setInterval(() => {
         cdVal--;
         const el = document.getElementById('countdown');
-        if(el) el.textContent = cdVal;
-        if(cdVal <= 0) {
+        if (el) el.textContent = cdVal;
+        if (cdVal <= 0) {
             const ind = document.getElementById('refreshIndicator');
-            if(ind) ind.classList.add('active');
+            if (ind) ind.classList.add('active');
             fetchSheet();
             fetchFareHarbor();
-            setTimeout(() => { if(ind) ind.classList.remove('active'); }, 1000);
+            setTimeout(() => { if (ind) ind.classList.remove('active'); }, 1000);
             startCD();
         }
     }, 1000);
