@@ -126,10 +126,21 @@
                     <div class="select-wrapper">
                         <select id="deliveryLake" onchange="onLakeChange()">
                             <option value="">— Select Delivery Lake —</option>
+                            <!-- Lakes -->
                             <option value="Lake Leelanau Bingham Launch">Lake Leelanau Bingham Launch</option>
                             <option value="Lake Leelanau Narrows Launch">Lake Leelanau Narrows Launch</option>
                             <option value="Long Lake Crescent Shores">Long Lake Crescent Shores</option>
                             <option value="Spider Lake Boat Ramp">Spider Lake Boat Ramp</option>
+                            <!-- Lodging / Resorts -->
+                            <option value="Black Star Farms">Black Star Farms</option>
+                            <option value="LeBear Resort">LeBear Resort</option>
+                            <option value="Maple Lane Resort">Maple Lane Resort</option>
+                            <option value="Indiggo Bluffs RV Park & Resort">Indiggo Bluffs RV Park &amp; Resort</option>
+                            <option value="Interlochen Motel">Interlochen Motel</option>
+                            <option value="Harbor Lights Resort">Harbor Lights Resort</option>
+                            <option value="Baymont by Wyndham Beulah">Baymont by Wyndham Beulah</option>
+                            <option value="Honor Motel">Honor Motel</option>
+                            <option value="M22 Inn">M22 Inn</option>
                         </select>
                     </div>
                 </div>
@@ -173,10 +184,21 @@ const SHOP = { lat: 44.773071217487626, lng: -85.73030818718583, name: "Aussie W
 
 // Lake coordinates — delivery destinations
 const LAKES = {
-    "Lake Leelanau Bingham Launch":  { lat: 45.0472, lng: -85.7573 },
-    "Lake Leelanau Narrows Launch":  { lat: 44.9586, lng: -85.7341 },
-    "Long Lake Crescent Shores":     { lat: 44.7358, lng: -85.6894 },
-    "Spider Lake Boat Ramp":         { lat: 44.6985, lng: -85.8172 }
+    // Boat launches
+    "Lake Leelanau Bingham Launch":  { lat: 45.0472,    lng: -85.7573 },
+    "Lake Leelanau Narrows Launch":  { lat: 44.9586,    lng: -85.7341 },
+    "Long Lake Crescent Shores":     { lat: 44.7358,    lng: -85.6894 },
+    "Spider Lake Boat Ramp":         { lat: 44.6985,    lng: -85.8172 },
+    // Lodging / resorts
+    "Black Star Farms":              { lat: 44.9338,    lng: -85.6362 },
+    "LeBear Resort":                 { lat: 44.9010,    lng: -85.9884 },
+    "Maple Lane Resort":             { lat: 44.8559,    lng: -86.0143 },
+    "Indiggo Bluffs RV Park & Resort": { lat: 44.8086, lng: -85.9932 },
+    "Interlochen Motel":             { lat: 44.6545,    lng: -85.7676 },
+    "Harbor Lights Resort":          { lat: 44.6317,    lng: -86.2442 },
+    "Baymont by Wyndham Beulah":     { lat: 44.6519,    lng: -86.0753 },
+    "Honor Motel":                   { lat: 44.6656,    lng: -86.0224 },
+    "M22 Inn":                       { lat: 44.9174,    lng: -85.6280 }
 };
 
 const ONSITE_MIN = 30; // minutes assumed on site for boat launch
