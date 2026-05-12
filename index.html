@@ -9,6 +9,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; overflow: hidden; }
         .container { display: flex; height: 100vh; }
         .sidebar { width: 440px; background: #fff; border-right: 3px solid #e0e0e0; overflow-y: auto; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+        @media (max-width: 600px) { .container { flex-direction: column; } .sidebar { width: 100%; height: 55vh; border-right: none; border-bottom: 3px solid #e0e0e0; } #map { height: 45vh; } body { overflow: auto; } }
         .header { padding-bottom: 16px; margin-bottom: 16px; border-bottom: 3px solid #4CAF50; }
         .header h1 { font-size: 28px; color: #2c3e50; font-weight: 700; margin-bottom: 4px; }
         .last-update { font-size: 13px; color: #888; }
@@ -226,7 +227,7 @@ const REFRESH_MS = 10000;
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let map, cdVal, cdInt, selectedDriver = null;
 let markers = {}, lakeMarkers = {};
-let trackingInterval = null, isTracking = false, sendCount = 0;
+let trackingInterval = null, trackingFallback = null, isTracking = false, sendCount = 0;
 let bookings = [];
 let localDrivers = {};
 let wakeLock = null;
@@ -384,6 +385,7 @@ function parseCSV(text) {
 
 function getLatestPerDriver(rows) {
     const d = {};
+    const STALE_MS = 8 * 60 * 60 * 1000; // hide drivers not seen in 8 hours
     rows.forEach(r => {
         const name = (r[COL.driverName] || '').trim();
         const lat  = parseFloat(r[COL.lat]);
@@ -403,6 +405,11 @@ function getLatestPerDriver(rows) {
             status:    (r[COL.status]   || 'En Route').trim(),
             bookingId: (r[COL.bookingId]|| '').trim()
         };
+    });
+    // Remove drivers not seen in the last 8 hours
+    Object.keys(d).forEach(name => {
+        const ts = parseAnyDate(d[name].timestamp);
+        if (!ts || (Date.now() - ts) > STALE_MS) delete d[name];
     });
     return d;
 }
@@ -631,18 +638,48 @@ async function startTracking() {
     // Acquire wake lock to keep screen/tab alive
     await requestWakeLock();
 
-    sendLoc();
-    trackingInterval = setInterval(sendLoc, REFRESH_MS);
+    // watchPosition is background-safe unlike setInterval — it fires continuously
+    // even when the tab is not focused, as long as the browser allows it
+    trackingInterval = navigator.geolocation.watchPosition(
+        (pos) => handlePosition(pos),
+        (err) => {
+            const msgs = {
+                1: "❌ Location denied. Settings → Location → Allow.",
+                2: "⚠️ GPS unavailable.",
+                3: "⏱ GPS timed out. Retrying…"
+            };
+            showMsg(msgs[err.code] || "GPS error: " + err.message, "err");
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+
+    // Also poll every 10s as a fallback in case watchPosition stalls
+    trackingFallback = setInterval(() => {
+        if (isTracking) sendLoc();
+    }, REFRESH_MS);
 }
 
 function stopTracking() {
-    clearInterval(trackingInterval);
-    trackingInterval = null;
+    if (trackingInterval != null) {
+        navigator.geolocation.clearWatch(trackingInterval);
+        trackingInterval = null;
+    }
+    clearInterval(trackingFallback);
+    trackingFallback = null;
     isTracking = false;
     setUI(false);
     releaseWakeLock();
     document.getElementById('bgWarning').classList.remove('show');
     showMsg("⛔ Tracking stopped.", "err");
+}
+
+let lastSendTime = 0;
+
+function handlePosition(pos) {
+    const now = Date.now();
+    if (now - lastSendTime < 8000) return; // throttle to max once per 8s
+    lastSendTime = now;
+    processSend(pos.coords.latitude, pos.coords.longitude);
 }
 
 function sendLoc() {
@@ -653,6 +690,25 @@ function sendLoc() {
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
+        processSend(latitude, longitude);
+    }, (err) => {
+        const msgs = {
+            1: "❌ Location denied. Settings → Location → Allow.",
+            2: "⚠️ GPS unavailable.",
+            3: "⏱ GPS timed out. Retrying…"
+        };
+        showMsg(msgs[err.code] || "GPS error: " + err.message, "err");
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+}
+
+async function processSend(latitude, longitude) {
+    const driverName = document.getElementById("driverName").value;
+    const bookingId  = document.getElementById("bookingId").value.trim();
+    const lake       = document.getElementById("deliveryLake").value;
+    const status     = document.getElementById("driverStatus").value;
+
+    if (!driverName || !isTracking) return;
+
         sendCount++;
         updateSendCounter();
 
@@ -699,14 +755,6 @@ function sendLoc() {
             showMsg("❌ Could not send. Check connection.", "err");
         }
 
-    }, (err) => {
-        const msgs = {
-            1: "❌ Location denied. Settings → Safari → Location → Allow.",
-            2: "⚠️ GPS unavailable.",
-            3: "⏱ GPS timed out. Retrying…"
-        };
-        showMsg(msgs[err.code] || "GPS error: " + err.message, "err");
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
 }
 
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
@@ -730,10 +778,19 @@ function statusCls(s) {
     if (s.includes('location') || s.includes('customer') || s.includes('delivery')) return 'at-location';
     return 'offline';
 }
+function parseAnyDate(s) {
+    if (!s) return null;
+    const m = String(s).match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+):(\d+)/);
+    if (m) return new Date(m[3], m[1]-1, m[2], m[4], m[5], m[6]);
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+}
 function timeSince(ts) {
     if (!ts) return 'Unknown';
     try {
-        const m = Math.floor((Date.now() - new Date(ts)) / 60000);
+        const d = parseAnyDate(ts);
+        if (!d) return 'Unknown';
+        const m = Math.floor((Date.now() - d) / 60000);
         if (m < 1) return 'Just now';
         if (m < 60) return `${m} min ago`;
         return `${Math.floor(m/60)} hr ago`;
