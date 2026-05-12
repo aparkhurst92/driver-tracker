@@ -220,7 +220,7 @@ const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ1VPNYB4UJS
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPi7E1UDKjEztraNafAEsyMis8dUOgXSvBL7nMloiQMUGecVdO4qoA9sFwshjSrRw/exec";
 const FAREHARBOR_PROXY = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://fareharbor.com/aussiewatersports/feed/');
 
-const COL = { timestamp:0, lat:1, lng:2, address:3, driverName:5, status:6, bookingId:7 };
+const COL = { driverName:0, lat:1, lng:2, address:3, timestamp:4, status:5, bookingId:6 };
 const REFRESH_MS = 10000;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -393,10 +393,10 @@ function getLatestPerDriver(rows) {
         if (d[name] && new Date(ts) <= new Date(d[name].timestamp)) return;
         d[name] = {
             name, lat, lng,
-            address:   (r[COL.address]   || '').trim(),
+            address:   (r[COL.address]  || '').trim(),
             timestamp: ts,
-            status:    (r[COL.status]    || 'En Route').trim(),
-            bookingId: (r[COL.bookingId] || '').trim()
+            status:    (r[COL.status]   || 'En Route').trim(),
+            bookingId: (r[COL.bookingId]|| '').trim()
         };
     });
     return d;
