@@ -388,9 +388,14 @@ function getLatestPerDriver(rows) {
         const name = (r[COL.driverName] || '').trim();
         const lat  = parseFloat(r[COL.lat]);
         const lng  = parseFloat(r[COL.lng]);
-        if (!name || isNaN(lat) || isNaN(lng)) return;
+        if (!name || name === 'Driver Name' || isNaN(lat) || isNaN(lng)) return; // skip header and invalid rows
         const ts = r[COL.timestamp] || '';
-        if (d[name] && new Date(ts) <= new Date(d[name].timestamp)) return;
+        const parseTs = (s) => {
+            const m = s.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+):(\d+)/);
+            if (m) return new Date(m[3], m[1]-1, m[2], m[4], m[5], m[6]);
+            return new Date(s);
+        };
+        if (d[name] && parseTs(ts) <= parseTs(d[name].timestamp)) return;
         d[name] = {
             name, lat, lng,
             address:   (r[COL.address]  || '').trim(),
@@ -411,7 +416,7 @@ function renderDrivers(drivers) {
     }
     list.innerHTML = Object.values(drivers).map(d => {
         const sc   = statusCls(d.status);
-        const bk   = bookings.find(b => b.id === d.bookingId);
+        const bk   = d.bookingId ? bookings.find(b => b.id === d.bookingId.trim()) : null;
         const lake = LAKES[d.address];
         const etas = calcEtas(d, lake);
 
@@ -531,7 +536,7 @@ function renderDriverMarkers(drivers) {
 }
 
 function buildInfoWindow(d) {
-    const bk   = bookings.find(b => b.id === d.bookingId);
+    const bk   = d.bookingId ? bookings.find(b => b.id === d.bookingId.trim()) : null;
     const lake = LAKES[d.address];
     const etas = calcEtas(d, lake);
     return `<div style="padding:12px;font-family:'Segoe UI',sans-serif;color:#333;min-width:240px;">
