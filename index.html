@@ -79,6 +79,14 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .empty-state { text-align: center; padding: 40px 16px; color: #aaa; }
         .empty-state h3 { font-size: 17px; color: #888; margin-bottom: 8px; }
+
+        /* Wake lock / background warning banner */
+        .bg-warning { display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #856404; font-weight: 600; margin-bottom: 10px; line-height: 1.5; }
+        .bg-warning.show { display: block; }
+
+        /* Send counter pill */
+        .send-counter { display: inline-block; background: #e8f5e9; color: #2e7d32; border-radius: 20px; font-size: 12px; font-weight: 700; padding: 3px 10px; margin-left: 6px; }
+
         .sidebar::-webkit-scrollbar { width: 8px; }
         .sidebar::-webkit-scrollbar-track { background: #f1f1f1; }
         .sidebar::-webkit-scrollbar-thumb { background: #4CAF50; border-radius: 4px; }
@@ -126,12 +134,10 @@
                     <div class="select-wrapper">
                         <select id="deliveryLake" onchange="onLakeChange()">
                             <option value="">— Select Delivery Lake —</option>
-                            <!-- Lakes -->
                             <option value="Lake Leelanau Bingham Launch">Lake Leelanau Bingham Launch</option>
                             <option value="Lake Leelanau Narrows Launch">Lake Leelanau Narrows Launch</option>
                             <option value="Long Lake Crescent Shores">Long Lake Crescent Shores</option>
                             <option value="Spider Lake Boat Ramp">Spider Lake Boat Ramp</option>
-                            <!-- Lodging / Resorts -->
                             <option value="Black Star Farms">Black Star Farms</option>
                             <option value="LeBear Resort">LeBear Resort</option>
                             <option value="Maple Lane Resort">Maple Lane Resort</option>
@@ -158,7 +164,17 @@
             </div>
             <div class="form-card">
                 <h3>📍 Live Tracking</h3>
-                <div class="tracking-badge" id="trackingBadge"><span class="dot"></span> Tracking active — updating every 10 sec</div>
+
+                <!-- Background warning shown when tab is hidden -->
+                <div class="bg-warning" id="bgWarning">
+                    ⚠️ <strong>Keep this tab open &amp; screen on</strong> for continuous GPS updates. Switching apps may pause tracking on iOS Safari.
+                </div>
+
+                <div class="tracking-badge" id="trackingBadge">
+                    <span class="dot"></span>
+                    Tracking active — updating every 10 sec
+                    <span class="send-counter" id="sendCounter">0 sent</span>
+                </div>
                 <div class="btn-row">
                     <button class="btn btn-start" id="startBtn" onclick="startTracking()">▶ Start Tracking</button>
                     <button class="btn btn-stop" id="stopBtn" onclick="stopTracking()" disabled>■ Stop</button>
@@ -182,39 +198,29 @@
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const SHOP = { lat: 44.773071217487626, lng: -85.73030818718583, name: "Aussie Water Sports" };
 
-// Lake coordinates — delivery destinations
 const LAKES = {
-    // Boat launches
-    "Lake Leelanau Bingham Launch":  { lat: 45.0472,    lng: -85.7573 },
-    "Lake Leelanau Narrows Launch":  { lat: 44.9586,    lng: -85.7341 },
-    "Long Lake Crescent Shores":     { lat: 44.7358,    lng: -85.6894 },
-    "Spider Lake Boat Ramp":         { lat: 44.6985,    lng: -85.8172 },
-    // Lodging / resorts
-    "Black Star Farms":              { lat: 44.9338,    lng: -85.6362 },
-    "LeBear Resort":                 { lat: 44.9010,    lng: -85.9884 },
-    "Maple Lane Resort":             { lat: 44.8559,    lng: -86.0143 },
-    "Indiggo Bluffs RV Park & Resort": { lat: 44.8086, lng: -85.9932 },
-    "Interlochen Motel":             { lat: 44.6545,    lng: -85.7676 },
-    "Harbor Lights Resort":          { lat: 44.6317,    lng: -86.2442 },
-    "Baymont by Wyndham Beulah":     { lat: 44.6519,    lng: -86.0753 },
-    "Honor Motel":                   { lat: 44.6656,    lng: -86.0224 },
-    "M22 Inn":                       { lat: 44.9174,    lng: -85.6280 }
+    "Lake Leelanau Bingham Launch":    { lat: 45.0472,  lng: -85.7573 },
+    "Lake Leelanau Narrows Launch":    { lat: 44.9586,  lng: -85.7341 },
+    "Long Lake Crescent Shores":       { lat: 44.7358,  lng: -85.6894 },
+    "Spider Lake Boat Ramp":           { lat: 44.6985,  lng: -85.8172 },
+    "Black Star Farms":                { lat: 44.9338,  lng: -85.6362 },
+    "LeBear Resort":                   { lat: 44.9010,  lng: -85.9884 },
+    "Maple Lane Resort":               { lat: 44.8559,  lng: -86.0143 },
+    "Indiggo Bluffs RV Park & Resort": { lat: 44.8086,  lng: -85.9932 },
+    "Interlochen Motel":               { lat: 44.6545,  lng: -85.7676 },
+    "Harbor Lights Resort":            { lat: 44.6317,  lng: -86.2442 },
+    "Baymont by Wyndham Beulah":       { lat: 44.6519,  lng: -86.0753 },
+    "Honor Motel":                     { lat: 44.6656,  lng: -86.0224 },
+    "M22 Inn":                         { lat: 44.9174,  lng: -85.6280 }
 };
 
-const ONSITE_MIN = 30; // minutes assumed on site for boat launch
+const ONSITE_MIN = 30;
 
-// Your Google Sheet published as CSV
-// Columns: A=Timestamp(0), B=Latitude(1), C=Longitude(2), D=Address(3), E=Timestamp2(4), F=DriverName(5), G=Status(6), H=BookingId(7)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQ1VPNYB4UJSOZTdZFTX9sfUbP5Qeo-c43aMFHwFveQ698_Tkf8DRxtQiEZnOB6dIpc4w9BN0Pobfv/pub?gid=0&single=true&output=csv';
-
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPi7E1UDKjEztraNafAEsyMis8dUOgXSvBL7nMloiQMUGecVdO4qoA9sFwshjSrRw/exec";
-
 const FAREHARBOR_PROXY = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://fareharbor.com/aussiewatersports/feed/');
 
-// ── EXACT column indexes matching your sheet screenshot ──
-// A(0)=Timestamp  B(1)=Latitude  C(2)=Longitude  D(3)=Address  E(4)=Timestamp  F(5)=DriverName  G(6)=Status  H(7)=BookingId
 const COL = { timestamp:0, lat:1, lng:2, address:3, driverName:5, status:6, bookingId:7 };
-
 const REFRESH_MS = 10000;
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -222,7 +228,51 @@ let map, cdVal, cdInt, selectedDriver = null;
 let markers = {}, lakeMarkers = {};
 let trackingInterval = null, isTracking = false, sendCount = 0;
 let bookings = [];
-let localDrivers = {}; // holds GPS data from current session immediately
+let localDrivers = {};
+let wakeLock = null;
+
+// ── WAKE LOCK ─────────────────────────────────────────────────────────────────
+async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => {
+            console.log('Wake lock released');
+            wakeLock = null;
+        });
+        console.log('Wake lock acquired');
+    } catch (e) {
+        console.warn('Wake lock failed:', e.message);
+    }
+}
+
+async function releaseWakeLock() {
+    if (wakeLock) {
+        try { await wakeLock.release(); } catch(e) {}
+        wakeLock = null;
+    }
+}
+
+// Re-acquire wake lock when tab becomes visible again (iOS/Android releases it on hide)
+document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+        document.getElementById('bgWarning').classList.remove('show');
+        if (isTracking) {
+            await requestWakeLock();
+            // If interval was killed by browser while hidden, restart it
+            if (!trackingInterval) {
+                sendLoc();
+                trackingInterval = setInterval(sendLoc, REFRESH_MS);
+            }
+            showMsg('📍 Tab back in focus — tracking resumed', 'ok');
+        }
+    } else {
+        // Tab went to background
+        if (isTracking) {
+            document.getElementById('bgWarning').classList.add('show');
+        }
+    }
+});
 
 // ── MAP INIT ──────────────────────────────────────────────────────────────────
 function initMap() {
@@ -241,14 +291,12 @@ function initMap() {
         ]
     });
 
-    // Shop marker
     new google.maps.Marker({
         position: SHOP, map,
         icon: { url:'https://aussiewatersports.com/wp-content/uploads/2020/05/Aussie-logo-web.png', scaledSize: new google.maps.Size(50,50), anchor: new google.maps.Point(25,25) },
         title: SHOP.name, zIndex: 1000
     });
 
-    // Lake markers
     Object.entries(LAKES).forEach(([name, coords]) => {
         const m = new google.maps.Marker({
             position: coords, map, title: name,
@@ -285,8 +333,6 @@ async function fetchSheet() {
         const t = await r.text();
         const rows = parseCSV(t);
         const sheetDrivers = getLatestPerDriver(rows);
-
-        // Merge: local GPS (from this session) takes priority
         const merged = Object.assign({}, sheetDrivers, localDrivers);
         renderDrivers(merged);
         renderDriverMarkers(merged);
@@ -332,11 +378,10 @@ function parseCSV(text) {
         } else field += c;
     }
     if (field || row.length) { row.push(field.trim()); if (row.some(f=>f)) rows.push(row); }
-    rows.shift(); // remove header
+    rows.shift();
     return rows;
 }
 
-// Keep only the LATEST row per driver based on timestamp
 function getLatestPerDriver(rows) {
     const d = {};
     rows.forEach(r => {
@@ -400,8 +445,6 @@ function renderDrivers(drivers) {
 // ── ETA CALCULATIONS ──────────────────────────────────────────────────────────
 function calcEtas(driver, lake) {
     const s = (driver.status || '').toLowerCase();
-
-    // ── ETA to lake ──
     let toLake;
     if (s.includes('at') && (s.includes('location') || s.includes('customer'))) {
         toLake = '✅ At delivery site';
@@ -421,13 +464,10 @@ function calcEtas(driver, lake) {
         toLake = 'No lake selected';
     }
 
-    // ── Estimated return to shop ──
-    // = drive to lake + 30 min on site + drive lake back to shop
     let toShop;
     if (s.includes('at') && s.includes('shop')) {
         toShop = '✅ At shop';
     } else if (s.includes('return')) {
-        // Already heading back — just distance to shop
         const dist = miles(driver.lat, driver.lng, SHOP.lat, SHOP.lng);
         if (dist < 0.1) {
             toShop = '✅ At shop';
@@ -459,20 +499,16 @@ function fmt(d) { return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-dig
 
 // ── DRIVER MAP MARKERS ────────────────────────────────────────────────────────
 function renderDriverMarkers(drivers) {
-    // Remove markers for drivers no longer active
     Object.keys(markers).forEach(n => {
         if (!drivers[n]) { markers[n].setMap(null); delete markers[n]; }
     });
-
     Object.values(drivers).forEach(d => {
         const pos = { lat: d.lat, lng: d.lng };
         if (markers[d.name]) {
             markers[d.name].setPosition(pos);
         } else {
-            // Create new marker with truck icon
             markers[d.name] = new google.maps.Marker({
-                position: pos, map,
-                title: d.name,
+                position: pos, map, title: d.name,
                 icon: {
                     url: 'https://cdn-icons-png.flaticon.com/512/123/123919.png',
                     scaledSize: new google.maps.Size(42, 42),
@@ -488,7 +524,6 @@ function renderDriverMarkers(drivers) {
                 selectDriver(d.name);
             });
         }
-        // Always refresh info window content
         if (markers[d.name]._iw) {
             markers[d.name]._iw.setContent(buildInfoWindow(d));
         }
@@ -564,28 +599,44 @@ function showMsg(msg, type) {
     const b = document.getElementById("statusMsg");
     b.textContent = msg; b.className = "status-msg " + type;
 }
+
 function setUI(active) {
     document.getElementById("startBtn").disabled = active;
     document.getElementById("stopBtn").disabled  = !active;
     document.getElementById("trackingBadge").className = "tracking-badge" + (active ? " on" : "");
 }
 
-function startTracking() {
+function updateSendCounter() {
+    const el = document.getElementById('sendCounter');
+    if (el) el.textContent = `${sendCount} sent`;
+}
+
+async function startTracking() {
     const name = document.getElementById("driverName").value;
     if (!name) { showMsg("⚠️ Select your name first.", "err"); return; }
     const lake = document.getElementById("deliveryLake").value;
     if (!lake) { showMsg("⚠️ Select a delivery lake first.", "err"); return; }
     if (!navigator.geolocation) { showMsg("❌ GPS not supported.", "err"); return; }
-    isTracking = true; sendCount = 0;
+
+    isTracking = true;
+    sendCount = 0;
     setUI(true);
     showMsg("🛰 Getting location…", "waiting");
+
+    // Acquire wake lock to keep screen/tab alive
+    await requestWakeLock();
+
     sendLoc();
-    trackingInterval = setInterval(sendLoc, 10000);
+    trackingInterval = setInterval(sendLoc, REFRESH_MS);
 }
 
 function stopTracking() {
-    clearInterval(trackingInterval); trackingInterval = null;
-    isTracking = false; setUI(false);
+    clearInterval(trackingInterval);
+    trackingInterval = null;
+    isTracking = false;
+    setUI(false);
+    releaseWakeLock();
+    document.getElementById('bgWarning').classList.remove('show');
     showMsg("⛔ Tracking stopped.", "err");
 }
 
@@ -598,6 +649,7 @@ function sendLoc() {
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
         sendCount++;
+        updateSendCounter();
 
         // Update local state immediately so map moves without waiting for sheet
         localDrivers[driverName] = {
@@ -611,9 +663,8 @@ function sendLoc() {
         };
 
         // Immediately re-render with new position
-        const allDrivers = Object.assign({}, localDrivers);
-        renderDrivers(allDrivers);
-        renderDriverMarkers(allDrivers);
+        renderDrivers(Object.assign({}, localDrivers));
+        renderDriverMarkers(Object.assign({}, localDrivers));
 
         // Send to Apps Script → Google Sheet
         const payload = new URLSearchParams({
@@ -633,15 +684,21 @@ function sendLoc() {
                 body: payload.toString(),
                 mode: "no-cors"
             });
+
             showMsg(`✅ Location sent (#${sendCount}) — map updating`, "ok");
+
+            // Fetch sheet 2 seconds after sending so boss's view updates faster
+            setTimeout(fetchSheet, 2000);
+
         } catch(e) {
             showMsg("❌ Could not send. Check connection.", "err");
         }
+
     }, (err) => {
         const msgs = {
             1: "❌ Location denied. Settings → Safari → Location → Allow.",
             2: "⚠️ GPS unavailable.",
-            3: "⏱ GPS timed out…"
+            3: "⏱ GPS timed out. Retrying…"
         };
         showMsg(msgs[err.code] || "GPS error: " + err.message, "err");
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
